@@ -13,19 +13,16 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
 #include <stdio.h>
-// #include <graphics.h>
-#include <matplotlibcpp.h>
-#include <cmath>
 
 using namespace std;
 using namespace cv;
-namespace plt = matplotlibcpp;
+
 
 /** Function Headers */
 void detectAndDisplay( Mat frame );
 
 /** Global variables */
-Sring cascade_name = "/dartcascade2/cascade.xml";
+String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
 
 
@@ -43,22 +40,13 @@ int main( int argc, const char** argv )
 
 	// 4. Save Result Image
 	imwrite( "detected.jpg", frame );
-
-
-	// 5. Plot graph from training set
-	plotGraph();
+;
 	return 0;
 }
 
-void plotGraph(){
-	// This current one is for 500 samples and 3 stages
-	plt::figure_size(1200, 780);	
-	plt::plot({ 1, 1, 1 },{ 1, 0.0126797, 0.000827449 });	
-	plt::title("Training TPR vs FPR");
-	plt::save("./task2plot.png");
-}
 
-/** @function detectAndDisplay */
+/** @function detectAndDisplay **/
+// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
 void detectAndDisplay( Mat frame )
 {
 	std::vector<Rect> faces;
