@@ -167,12 +167,37 @@ float calcIOU(int l2_x, int l2_y, int r2_x, int r2_y){
 	return iou;
 }
 
-
+// fraction of successfully detected faces out of all valid faces in an image.
 void calcTPR(){
-	
+	// if iou >= 0.5 then TP
+	// otherwise 
+	// TN
+	// FP
+	// FN
 }
 
 
 void calcF1score(){
+	// formula: 2 * ([precision * recall]/[precision + recall])
+
+	// precision = TP / (TP + FP)
+
+	// recall = TP / (TP + FN)
+
+	// we need:
+	// TP(from iou)
+	// TN(no of detected - no of actual faces) -> faces detected though they dont exist
+	// FP(no detected - no of actual) -> no faces but some are detected 
+	// FN(no of faces - no detected) -> there are faces but not detected
+
+/*
+
+positive class: % detected by the detector or face
+negative class: % not detected by detector or no face
+
+dart4.jpg
+
+
+*/
 
 }
