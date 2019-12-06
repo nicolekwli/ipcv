@@ -90,12 +90,12 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 					int inputVal = (int)paddedInput.at<uchar> (inputX, inputY);
 					double kernelVal  = kernel.at<double> (kernelX, kernelY);  
 					
-					sum += inputVal * kernelVal;
+					sumX += inputVal * kernelVal;
 
 				}
 
 			}	
-			resultX.at<double>(i,j) = sum;			
+			resultX.at<double>(i,j) = sumX;			
 		}
 	}	
 }
