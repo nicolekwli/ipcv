@@ -58,15 +58,15 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 	// this hsould be Gaussian kernal idk
 	// do we want it an in tidk
 	// int kernel[size][size];
-	int kernelXInit[3][3] = {{ -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 }};
-	cv::Mat kernel = cv::Mat(size, size, CV_32FC2, kernelXInit);
+	double kernelXInit[3][3] = {{ -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 }};
+	cv::Mat kernel_X = cv::Mat(size, size, CV_32FC2, kernelXInit);
 
-	int kernelYInit[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-	cv::Mat kernelY = cv::Mat(size, size, CV_32FC2, kernelYInit);
+	double kernelYInit[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+	cv::Mat kernel_Y = cv::Mat(size, size, CV_32FC2, kernelYInit);
 	
 	// create padded version of input to prevent border effects
-	int kernelXRad = (kernel.size[0] -1) / 2;
-	int kernelYRad = (kernel.size[1] -1) / 2;
+	int kernelXRad = (kernel_X.size[0] -1) / 2;
+	int kernelYRad = (kernel_Y.size[1] -1) / 2;
 
 	// wtf is a padded input
 	cv::Mat paddedInput;
@@ -88,14 +88,15 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 
 					// get values
 					int inputVal = (int)paddedInput.at<uchar> (inputX, inputY);
-					double kernelVal  = kernel.at<double> (kernelX, kernelY);  
-					
-					sumX += inputVal * kernelVal;
-
+					double kernelValX = kernel_X.at<double> (kernelX, kernelY);  
+				 	double kernelValY = kernel_Y.at<double> (kernelX, kernelY); 
+					sumX += inputVal * kernelValX;
+					sumY += inputVal * kernelValY;
 				}
 
 			}	
 			resultX.at<double>(i,j) = sumX;			
+			resultY.at<double>(i,j) = sumY;
 		}
 	}	
 }
@@ -107,7 +108,7 @@ void sobel ( Mat frame ) {
 	cvtColor ( frame, frame_gray, CV_BGR2GRAY);
 	// Compute image containing derivative in x direction
         cv::Mat ddx1;
-	cv::Mat ddy2;
+	cv::Mat ddy1;
 	ddx(frame_gray, ddx1, ddy1);	
 	// y direction
 	// magnitude of gradient
