@@ -25,6 +25,13 @@ struct datastruct {
 	int x, y, w, h;
 };
 
+<<<<<<< HEAD
+=======
+// initializing the values
+//datatstruct gt_data[4];
+//gt_data[0] = 
+
+>>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
 /** Function Headers */
 void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
@@ -56,6 +63,7 @@ int main( int argc, const char** argv ){
 	detectAndDisplay( argv[1], frame );
 
 	// 4. Save Result Image
+<<<<<<< HEAD
 	imwrite( "drawn.jpg", frame );
 
 	return 0;
@@ -63,6 +71,17 @@ int main( int argc, const char** argv ){
 
 /** @function detectAndDisplay */
 void detectAndDisplay( string fname, Mat frame ){
+=======
+	imwrite( "detected.jpg", frame );
+;
+	return 0;
+}
+
+/** @function detectAndDisplay **/
+// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
+void detectAndDisplay( Mat frame )
+{
+>>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
 	std::vector<Rect> faces;
 	Mat frame_gray;
 
@@ -277,5 +296,9 @@ negative class: % not detected by detector or no face
 528 482 170 170
 */
 
+<<<<<<< HEAD
 
 ///-> whats broken: things that
+=======
+}
+>>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
