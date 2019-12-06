@@ -26,7 +26,6 @@ struct datastruct {
 //datatstruct gt_data[4];
 //gt_data[0] = 
 
-
 /** Function Headers */
 void detectAndDisplay( Mat frame );
 void groundTruth( string fname, Mat frame);
@@ -55,12 +54,14 @@ int main( int argc, const char** argv )
 
 	// 4. Save Result Image
 	imwrite( "detected.jpg", frame );
-
+;
 	return 0;
 }
 
-/** @function detectAndDisplay */
-void detectAndDisplay( Mat frame ){
+/** @function detectAndDisplay **/
+// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
+void detectAndDisplay( Mat frame )
+{
 	std::vector<Rect> faces;
 	Mat frame_gray;
 
