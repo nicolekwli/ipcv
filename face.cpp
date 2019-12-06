@@ -12,40 +12,42 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
-#include <stdio.h>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
 
-/* struct with ground truth values??? */
+/* constants */
+const std::string GTFILENAME = "gt_faces_data.txt";
+
+/* struct that contains data OF an IMAge to draw bb */
 struct datastruct {
 	int x, y, w, h;
 };
 
-// initializing the values
-//datatstruct gt_data[4];
-//gt_data[0] = 
-
-
 /** Function Headers */
 void detectAndDisplay( Mat frame );
-void groundTruth( string fname, Mat frame);
+void getGroundTruthData();
+void drawGroundTruth( string fname, Mat frame);
 float calcIOU(int l2_x, int l2_y, int r2_x, int r2_y);
 void calcF1score();
 
 /** Global variables */
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
+datastruct gt[15][15];
 
 
 /** @function main */
-int main( int argc, const char** argv )
-{
+int main( int argc, const char** argv ){
+	// get gt data from file
+	getGroundTruthData();
+
 	// 1. Read Input Image
 	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
 	// ---> display ground truth boxes
-	groundTruth(argv[1], frame);
+	drawGroundTruth(argv[1], frame);
 
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
@@ -54,7 +56,7 @@ int main( int argc, const char** argv )
 	detectAndDisplay( frame );
 
 	// 4. Save Result Image
-	imwrite( "detected.jpg", frame );
+	imwrite( "drawn.jpg", frame );
 
 	return 0;
 }
@@ -76,13 +78,13 @@ void detectAndDisplay( Mat frame ){
 	std::cout << faces.size() << std::endl;
 
 	// 4. Draw box around faces found
-	for( int i = 0; i < faces.size(); i++ )
-	{
+	for( int i = 0; i < faces.size(); i++ ){
 		// print details of faces
         std::cout << faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
 
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 
+		// use the struct to store these in another global array?
 		int l2_x, l2_y, r2_x, r2_y;
 		l2_x = faces[i].x;
 		l2_y = faces[i].y;
@@ -95,33 +97,106 @@ void detectAndDisplay( Mat frame ){
 }
 
 // ----- SUBTASK 1 ----------------------------------------------------------------
-// draws the ground truth (red) boxes 
-void groundTruth(string fname, Mat frame){
-	std::vector<std::tuple<int, int, int, int>> ground_truth_data;
-	ground_truth_data.push_back(std::make_tuple(330, 100, 130, 140)); // dart4
-	ground_truth_data.push_back(std::make_tuple(0, 0, 0, 0)); //dart5
-	ground_truth_data.push_back(std::make_tuple(0, 0, 0, 0)); //dart13
-	ground_truth_data.push_back(std::make_tuple(0, 0, 0, 0)); //dart14
-	ground_truth_data.push_back(std::make_tuple(0, 0, 0, 0)); //dart15
 
-	//std::cout << "getting data" << std::get<0>(ground_truth_data[0]) << std::endl;
+void getGroundTruthData(){
+	string line;
+	int index;
+	ifstream f;
+	f.open(GTFILENAME, ios::out);
+	string T;
+	
+	// gets first line but we ignore it since its a comment
+	std::getline(f, line);
+		
+	while(!f.eof()){
+		// get a line
+		std::getline(f, line);
+		// create a temp thing
+		std::stringstream temp(line);
 
-	if (fname == "dart4.jpg"){
-		rectangle(frame, Point(330, 100), Point(460, 240), Scalar( 0, 0, 255 ), 2);
-		// rectangle(frame, Point(std::get<0>(ground_truth_data[0]), std::get<0>(ground_truth_data[1])), Point(460, 240), Scalar( 0, 0, 255 ), 2);
+		// extract index from line
+		getline(temp, T, ' ');
+		index = stoi(T);
+    	
+		// dealing with images with more than one face/dart
+		// is added as a new column
+		int col = 0;
+		if(gt[index][col].x != 0){
+			col++;
+		}
+		else col = 0;
+
+		// extracting each value for x y w h as integer
+		getline(temp, T, ' ');
+		gt[index][col].x = stoi(T);
+		getline(temp, T, ' ');
+		gt[index][col].y = stoi(T);
+		getline(temp, T, ' ');
+		gt[index][col].w = stoi(T);
+		getline(temp, T, ' ');
+		gt[index][col].h = stoi(T);
+		
+		// cout<<"index: " <<index << endl;
+		// cout<< gt[index][0].x << " " << gt[index][0].y << " " <<gt[index][0].w << " "<<gt[index][0].w << endl;
 	}
+
+	f.close();
+}
+
+
+/* draws the ground truth (red) boxes */
+void drawGroundTruth(string fname, Mat frame){
+	cout<<"hereeeeeeeeeeeee"<< endl;
+	int index = 0;
+	int col = 0;
+	// get image number ie index
+	index = fname[4]-48;
+	cout<<"index is: "<< index <<endl;
+
+	// draw rect
+	while(gt[index][col].x !=0){
+		rectangle(frame, Point(gt[index][col].x, gt[index][col].y), Point(gt[index][col].x + gt[index][col].w, gt[index][col].y + gt[index][col].h), Scalar( 0, 0, 255 ), 2);
+		if (gt[index][col].x == 0){
+			break;
+		}
+		else 
+			col++;
+	}
+
+	// if (fname == "dart4.jpg"){
+	// 	rectangle(frame, Point(330, 100), Point(485, 260), Scalar( 0, 0, 255 ), 2);
+	// }
 	// else if (fname == "dart5.jpg"){
-	// 	rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 0, 255 ), 2);
+	// 	// x1 y1 x2 y2
+	// 	int coords[11][11][11][11];
+	// 	for (int i=0; i<11; i++){
+	// 		rectangle(frame, Point(250, 164), Point(310, 252), Scalar( 0, 0, 255 ), 2);
+	// 	}
+	// }
+	// else if (fname == "dart6.jpg"){
+	// 	rectangle(frame, Point(285, 115), Point(324, 157), Scalar( 0, 0, 255 ), 2);
+	// }
+	// else if (fname == "dart7.jpg"){
+	// 	rectangle(frame, Point(337, 189), Point(428, 286), Scalar( 0, 0, 255 ), 2);
+	// }
+	// else if (fname == "dart9.jpg"){
+	// 	rectangle(frame, Point(81, 200), Point(190, 330), Scalar( 0, 0, 255 ), 2);
+	// }
+	// else if (fname == "dart11.jpg"){
+	// 	rectangle(frame, Point(328, 76), Point(385, 150), Scalar( 0, 0, 255 ), 2);
 	// }
 	// else if (fname == "dart13.jpg"){
-	// 	rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 0, 255 ), 2);
+	// 	rectangle(frame, Point(420, 123), Point(544, 255), Scalar( 0, 0, 255 ), 2);
 	// }
 	// else if (fname == "dart14.jpg"){
-	// 	rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 0, 255 ), 2);
+	// 	rectangle(frame, Point(461, 210), Point(550, 320), Scalar( 0, 0, 255 ), 2);
+	// 	rectangle(frame, Point(725, 185), Point(826, 295), Scalar( 0, 0, 255 ), 2);
 	// }
 	// else if (fname == "dart15.jpg"){
-	// 	rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 0, 255 ), 2);
-	//}
+	// 	rectangle(frame, Point(65, 123), Point(140, 212), Scalar( 0, 0, 255 ), 2);
+	// 	rectangle(frame, Point(369, 110), Point(455, 205), Scalar( 0, 0, 255 ), 2);
+	// 	rectangle(frame, Point(542, 121), Point(642, 221), Scalar( 0, 0, 255 ), 2);
+	// }
 }
 
 /*
@@ -167,13 +242,9 @@ float calcIOU(int l2_x, int l2_y, int r2_x, int r2_y){
 	return iou;
 }
 
-// fraction of successfully detected faces out of all valid faces in an image.
 void calcTPR(){
 	// if iou >= 0.5 then TP
-	// otherwise 
-	// TN
-	// FP
-	// FN
+	// True P Rate is the fraction ofsuccessfully detected faces out of all valid faces in an image
 }
 
 
@@ -195,9 +266,23 @@ void calcF1score(){
 positive class: % detected by the detector or face
 negative class: % not detected by detector or no face
 
-dart4.jpg
-
-
 */
 
 }
+
+/*
+250 164 57 57
+513 177 55 55
+641 184 59 59
+191 214 65 65
+425 231 68 68
+290 242 63 63
+58 249 64 64
+554 244 69 69
+673 246 64 64
+695 599 59 59
+60 135 63 63
+377 190 57 57
+384 400 81 81
+528 482 170 170
+*/
