@@ -26,10 +26,10 @@ struct datastruct {
 };
 
 /** Function Headers */
-void detectAndDisplay( Mat frame );
+void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
-float calcIOU(int l2_x, int l2_y, int r2_x, int r2_y);
+float calcIOU(string fname, int px, int py, int pw, int ph);
 void calcF1score();
 
 /** Global variables */
@@ -53,7 +53,7 @@ int main( int argc, const char** argv ){
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
 	// 3. Detect Faces and Display Result
-	detectAndDisplay( frame );
+	detectAndDisplay( argv[1], frame );
 
 	// 4. Save Result Image
 	imwrite( "drawn.jpg", frame );
@@ -62,7 +62,7 @@ int main( int argc, const char** argv ){
 }
 
 /** @function detectAndDisplay */
-void detectAndDisplay( Mat frame ){
+void detectAndDisplay( string fname, Mat frame ){
 	std::vector<Rect> faces;
 	Mat frame_gray;
 
@@ -88,11 +88,10 @@ void detectAndDisplay( Mat frame ){
 		int l2_x, l2_y, r2_x, r2_y;
 		l2_x = faces[i].x;
 		l2_y = faces[i].y;
-		r2_x = faces[i].x + faces[i].width;
-		r2_y = faces[i].y + faces[i].height;
+		r2_x = faces[i].width;
+		r2_y = faces[i].height;
 
-		// pass fname here?
-		calcIOU(l2_x, l2_y, r2_x, r2_y);
+		calcIOU(fname, l2_x, l2_y, r2_x, r2_y);
 	}
 }
 
@@ -146,10 +145,9 @@ void getGroundTruthData(){
 
 /* draws the ground truth (red) boxes */
 void drawGroundTruth(string fname, Mat frame){
-	cout<<"hereeeeeeeeeeeee"<< endl;
 	int index = 0;
 	int col = 0;
-	// get image number ie index
+	// get image number ie index as in int
 	index = fname[4]-48;
 	cout<<"index is: "<< index <<endl;
 
@@ -162,41 +160,6 @@ void drawGroundTruth(string fname, Mat frame){
 		else 
 			col++;
 	}
-
-	// if (fname == "dart4.jpg"){
-	// 	rectangle(frame, Point(330, 100), Point(485, 260), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart5.jpg"){
-	// 	// x1 y1 x2 y2
-	// 	int coords[11][11][11][11];
-	// 	for (int i=0; i<11; i++){
-	// 		rectangle(frame, Point(250, 164), Point(310, 252), Scalar( 0, 0, 255 ), 2);
-	// 	}
-	// }
-	// else if (fname == "dart6.jpg"){
-	// 	rectangle(frame, Point(285, 115), Point(324, 157), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart7.jpg"){
-	// 	rectangle(frame, Point(337, 189), Point(428, 286), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart9.jpg"){
-	// 	rectangle(frame, Point(81, 200), Point(190, 330), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart11.jpg"){
-	// 	rectangle(frame, Point(328, 76), Point(385, 150), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart13.jpg"){
-	// 	rectangle(frame, Point(420, 123), Point(544, 255), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart14.jpg"){
-	// 	rectangle(frame, Point(461, 210), Point(550, 320), Scalar( 0, 0, 255 ), 2);
-	// 	rectangle(frame, Point(725, 185), Point(826, 295), Scalar( 0, 0, 255 ), 2);
-	// }
-	// else if (fname == "dart15.jpg"){
-	// 	rectangle(frame, Point(65, 123), Point(140, 212), Scalar( 0, 0, 255 ), 2);
-	// 	rectangle(frame, Point(369, 110), Point(455, 205), Scalar( 0, 0, 255 ), 2);
-	// 	rectangle(frame, Point(542, 121), Point(642, 221), Scalar( 0, 0, 255 ), 2);
-	// }
 }
 
 /*
@@ -209,30 +172,57 @@ l1----------
 	  -------------r2
 */
 
-float calcIOU(int l2_x, int l2_y, int r2_x, int r2_y){
-	float iou;
-	int total, gt_area, predict_area = 0.0; 
-	int len, bred;
-	float intersection;
+// a legend of sorts:
+// px, py, pw, ph -> predicted coordinates
+// gx, gy, gw, gh -> ground truth coordinates
+//float calcIOU(string fname, int l2_x, int l2_y, int r2_x, int r2_y){
+float calcIOU(string fname, int px, int py, int pw, int ph){
+	// - get index
+	int index = fname[4]-48;
+	float iou = 0.0;
+	int total, g_area, p_area = 0; 
+	float intersection = 0.0;
 
-	// dart4 coordinates:
-	int l1_x, l1_y, r1_x, r1_y;
-	l1_x = 330;
-	l1_y = 100;
-	r1_x = 460;
-	r1_y = 240;
+	// - make coordinate form since thats easier to understand
+	int gx, gy, gh, gw; // RIP!!??
+	gx = gt[index][0].x;
+	gy = gt[index][0].y;
+	gw = gt[index][0].w;
+	gh = gt[index][0].h;
 
-	// area for each bounding box
-		// width x height ???
-	gt_area = (r1_x - l1_x) * (r1_y - l1_y);
-	predict_area = (r2_x - l2_x) * (r2_y - l2_y);
+	// - area of each rect
+	p_area = pw * ph; // width x height
+	g_area = gw * gh;
+	
+	// - get points of intersecting rect
+	int ix1, iy1, ix2, iy2;
+	ix1 = min(gx + gw, px + pw);
+	ix2 = max(gx, px);
+	iy1 = min(gy + gh, py + ph);
+	iy2 = max(gy, py);
+	intersection = (ix1 - ix2) * (iy1 - iy2);
 
-	// determine intersection area
-	intersection = (min(r1_x, r2_x) - max(l1_x, l2_x)) *  
-                (min(r1_y, r2_y) - max(l1_y, l2_y)); 		
+
+	// --------------------------------------------
+			// // - for calculating iou, we need points
+			// // - dart4 coordinates:
+			// int l1_x, l1_y, r1_x, r1_y;
+			// l1_x = 330;
+			// l1_y = 100;
+			// r1_x = 460;
+			// r1_y = 240;
+
+			// // area for each bounding box
+			// 	// width x height ???
+			// g_area = (r1_x - l1_x) * (r1_y - l1_y);
+			// p_area = (r2_x - l2_x) * (r2_y - l2_y);
+
+			// // determine intersection area
+			// intersection = (min(r1_x, r2_x) - max(l1_x, l2_x)) *  
+			//             (min(r1_y, r2_y) - max(l1_y, l2_y)); 		
 
 	// determine union area
-	total = ((gt_area + predict_area) - intersection);
+	total = (g_area + p_area) - intersection;
 	
 	// iou of the box
 	iou = abs(intersection) / abs(total);
@@ -286,3 +276,6 @@ negative class: % not detected by detector or no face
 384 400 81 81
 528 482 170 170
 */
+
+
+///-> whats broken: things that
