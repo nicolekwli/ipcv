@@ -22,7 +22,7 @@ using namespace cv;
 void detectAndDisplay( Mat frame );
 void sobel( Mat frame );
 /** Global variables */
-String cascade_name = "dartcascade/cascade.xml";
+String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
 
 
@@ -40,7 +40,7 @@ int main( int argc, const char** argv )
 	sobel( frame);
 
 	// 4. Save Result Image
-	//imwrite( "detectedDarts.jpg", frame );
+	imwrite( "sobel.jpg", frame );
 ;
 	return 0;
 }
@@ -142,6 +142,8 @@ void sobel ( Mat frame ) {
 	// direction of gradient	
 	cv::Mat dir;
 	direction(frame_gray, ddx1, ddy1, dir);
+
+	// WHAT DOES IT PRODUCE? --> result
 }
 
 
@@ -149,23 +151,27 @@ void sobel ( Mat frame ) {
 // THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
 void detectAndDisplay( Mat frame )
 {
-	std::vector<Rect> faces;
+	// std::vector<Rect> faces;
+	
 	Mat frame_gray;
+	// Mat result;
 
 	// 1. Prepare Image by turning it into Grayscale and normalising lighting
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
 	equalizeHist( frame_gray, frame_gray );
 
 	// 2. Perform Viola-Jones Object Detection 
-	cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
-
+	// cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
+	// sobel (frame_gray, result);
+	
+	// imwrite("sobel.jpg", result);
        // 3. Print number of Faces found
-	std::cout << faces.size() << std::endl;
+	// std::cout << faces.size() << std::endl;
 
        // 4. Draw box around faces found
-	for( int i = 0; i < faces.size(); i++ )
+	/* for( int i = 0; i < faces.size(); i++ )
 	{
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
-	}
+	}*/
 
 }
