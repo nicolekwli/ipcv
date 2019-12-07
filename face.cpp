@@ -25,13 +25,6 @@ struct datastruct {
 	int x, y, w, h;
 };
 
-<<<<<<< HEAD
-=======
-// initializing the values
-//datatstruct gt_data[4];
-//gt_data[0] = 
-
->>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
 /** Function Headers */
 void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
@@ -43,6 +36,7 @@ void calcF1score();
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
 datastruct gt[15][15];
+int no_of_face[15] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
 
 
 /** @function main */
@@ -63,7 +57,6 @@ int main( int argc, const char** argv ){
 	detectAndDisplay( argv[1], frame );
 
 	// 4. Save Result Image
-<<<<<<< HEAD
 	imwrite( "drawn.jpg", frame );
 
 	return 0;
@@ -71,17 +64,6 @@ int main( int argc, const char** argv ){
 
 /** @function detectAndDisplay */
 void detectAndDisplay( string fname, Mat frame ){
-=======
-	imwrite( "detected.jpg", frame );
-;
-	return 0;
-}
-
-/** @function detectAndDisplay **/
-// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
-void detectAndDisplay( Mat frame )
-{
->>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
 	std::vector<Rect> faces;
 	Mat frame_gray;
 
@@ -221,7 +203,6 @@ float calcIOU(string fname, int px, int py, int pw, int ph){
 	iy2 = max(gy, py);
 	intersection = (ix1 - ix2) * (iy1 - iy2);
 
-
 	// --------------------------------------------
 			// // - for calculating iou, we need points
 			// // - dart4 coordinates:
@@ -296,9 +277,5 @@ negative class: % not detected by detector or no face
 528 482 170 170
 */
 
-<<<<<<< HEAD
 
 ///-> whats broken: things that
-=======
-}
->>>>>>> a0817b5d7d0ec38492e6032d1af80724c645150c
