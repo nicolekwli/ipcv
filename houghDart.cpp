@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// COMS30121 - face.cpp
+// COMS30121 - houghDart.cpp
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -101,19 +101,47 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 	}	
 }
 
+// magnitude of gradient for sobel
+void magnitude (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude) {
+	// Get the derivatices first and use them for the magnitude
+	// cv::Mat ddx1;
+	// cv::Mat ddy1;
+	// ddx(input, ddx1, ddy1);
+
+	magnitude = cv::Mat (input.rows, input.cols, CV_32FC2);
+	for (int i = 0; i < input.rows; i++) {
+		for (int j = 0; j < input.cols; j++) {
+			magnitude.at<double>(i,j) = sqrt( pow( ddx.at<double> (i,j), 2) + pow( ddy.at<double> (i,j), 2));	
+		}
+	}	
+}
+
+void direction (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction){
+	direction = cv::Mat (input.rows, input.cols, CV_32FC2);
+	for (int i = 0; i < input.rows; i++) {
+		for (int j = 0; j < input.cols; j++ ) {
+			direction.at<double>(i,j) = atan( ddy.at<double> (i,j) / ddx.at<double> (i,j));
+		}
+	}
+}
+
 // sobel function for first part of hough
 void sobel ( Mat frame ) {
 	// make greyscale first
 	Mat frame_gray;
 	cvtColor ( frame, frame_gray, CV_BGR2GRAY);
-	// Compute image containing derivative in x direction
+	// Compute image containing derivative in x direction and y direction
         cv::Mat ddx1;
 	cv::Mat ddy1;
 	ddx(frame_gray, ddx1, ddy1);	
-	// y direction
+	
 	// magnitude of gradient
-	// direction of gradient	
+	cv::Mat mag;
+	magnitude(frame_gray, ddx1, ddy1, mag);
 
+	// direction of gradient	
+	cv::Mat dir;
+	direction(frame_gray, ddx1, ddy1, dir);
 }
 
 
