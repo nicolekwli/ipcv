@@ -20,24 +20,44 @@ using namespace cv;
 
 /** Function Headers */
 void detectAndDisplay( Mat frame );
-void sobel( Mat frame );
+void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
+void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
+void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
+
 /** Global variables */
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
-
 
 /** @function main */
 int main( int argc, const char** argv )
 {
        // 1. Read Input Image
-	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
-
+	// cv::Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+	cv::Mat frame = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
 	// 3. Detect Faces and Display Result
 	// detectAndDisplay( frame );
-	sobel( frame);
+	// start of sobel
+	cv::Mat ddx1;
+	cv::Mat ddy;
+	cv::Mat mag;
+	cv::Mat dir;
+
+	// Compute image containing derivative in x direction and y direction
+	ddx(frame, ddx1, ddy);	
+		
+	// magnitude of gradient
+	magnitude(frame, ddx1, ddy, mag);
+
+	// direction of gradient	
+	direction(frame, ddx1, ddy, dir);
+
+	// WHAT DOES IT PRODUCE? --> result
+	// work on hough starting here
+	
+
 
 	// 4. Save Result Image
 	imwrite( "sobel.jpg", frame );
@@ -125,26 +145,7 @@ void direction (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction){
 	}
 }
 
-// sobel function for first part of hough
-void sobel ( Mat frame ) {
-	// make greyscale first
-	Mat frame_gray;
-	cvtColor ( frame, frame_gray, CV_BGR2GRAY);
-	// Compute image containing derivative in x direction and y direction
-        cv::Mat ddx1;
-	cv::Mat ddy1;
-	ddx(frame_gray, ddx1, ddy1);	
-	
-	// magnitude of gradient
-	cv::Mat mag;
-	magnitude(frame_gray, ddx1, ddy1, mag);
 
-	// direction of gradient	
-	cv::Mat dir;
-	direction(frame_gray, ddx1, ddy1, dir);
-
-	// WHAT DOES IT PRODUCE? --> result
-}
 
 
 /** @function detectAndDisplay **/
@@ -175,3 +176,6 @@ void detectAndDisplay( Mat frame )
 	}*/
 
 }
+
+
+
