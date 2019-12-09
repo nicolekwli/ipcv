@@ -23,6 +23,9 @@ void detectAndDisplay( Mat frame );
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
+void thresholding(Mat &input, Mat &thresholded);
+void hough( Mat tgMagImage, int threshold);
+
 
 /** Global variables */
 String cascade_name = "frontalface.xml";
@@ -34,6 +37,7 @@ int main( int argc, const char** argv )
        // 1. Read Input Image
 	// cv::Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 	cv::Mat frame = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
+
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
@@ -44,6 +48,7 @@ int main( int argc, const char** argv )
 	cv::Mat ddy;
 	cv::Mat mag;
 	cv::Mat dir;
+	cv::Mat thresh; 
 
 	// Compute image containing derivative in x direction and y direction
 	ddx(frame, ddx1, ddy);	
@@ -55,8 +60,10 @@ int main( int argc, const char** argv )
 	direction(frame, ddx1, ddy, dir);
 
 	// WHAT DOES IT PRODUCE? --> result
-	// work on hough starting here
-	
+	// thresholding the gradient magnitude image
+	thresholding(mag, thresh);
+		
+	// then hough()
 
 
 	// 4. Save Result Image
@@ -128,6 +135,8 @@ void magnitude (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude) 
 	// cv::Mat ddy1;
 	// ddx(input, ddx1, ddy1);
 
+	cout<< "hereeeeeeeeeeeeeeeeeee" << endl;
+
 	magnitude = cv::Mat (input.rows, input.cols, CV_32FC2);
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
@@ -136,6 +145,7 @@ void magnitude (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude) 
 	}	
 }
 
+// what this do
 void direction (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction){
 	direction = cv::Mat (input.rows, input.cols, CV_32FC2);
 	for (int i = 0; i < input.rows; i++) {
@@ -145,13 +155,49 @@ void direction (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction){
 	}
 }
 
+void thresholding( Mat &input, Mat &thresholded){
+		cout<< "also hereeeeee" << endl;
+
+	// take gradient magnitude and apply thresholding operation
+	// -> to get set of pixels with trongest g. magnitude to be considered for circle detection
+	thresholded = cv::Mat (input.rows, input.cols, CV_32FC2);
+
+	// how to go through values of pixelsssss
+	for (int i = 0; i < input.rows; i++) {
+		for (int j = 0; j < input.cols; j++ ) {
+			if (input.at<double>(i,j) > 105 ) {
+				thresholded.at<double>(i,j) = 255;
+			}
+			else {
+				thresholded.at<double>(i,j) = 0;
+			}
+		}
+	}
+
+}
+
+
+// ---> min/max radius and distance between circle centres
+void hough( Mat tgMagImage, int threshold ){
+	int houghSpace[5][5][5]; //????????
+
+	// calculates 3D hough space (xo, yo, r) from threshold g. mag. image and gradient orientation image
+	// decide size (no of cells) in hough space
+
+
+	// display hough space for each image
+	// --> create a 2D image
+	// ---> take log of the image to make values more descriptive
+
+
+	// threshold the hough space and display the set of found circles on og images 
+}
 
 
 
 /** @function detectAndDisplay **/
 // THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
-void detectAndDisplay( Mat frame )
-{
+void detectAndDisplay( Mat frame ){
 	// std::vector<Rect> faces;
 	
 	Mat frame_gray;
