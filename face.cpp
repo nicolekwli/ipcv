@@ -35,7 +35,7 @@ void calcF1score();
 /** Global variables */
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
-datastruct gt[16][16];
+datastruct gt[30][30];
 int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
 
 
@@ -43,7 +43,7 @@ int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
 int main( int argc, const char** argv ){
 	// get gt data from file
 	getGroundTruthData();
-
+	std::cout << "data read" << std::endl;
 	// 1. Read Input Image
 	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
@@ -101,6 +101,7 @@ void detectAndDisplay( string fname, Mat frame ){
 
 void getGroundTruthData(){
 	std::cout << "in GT" << std::endl;
+
 	string line;
 	int index;
 	ifstream f;
@@ -119,6 +120,7 @@ void getGroundTruthData(){
 		// extract index from line
 		getline(temp, T, ' ');
 		index = stoi(T);
+		std::cout << index << std::endl;
     	
 		// dealing with images with more than one face/dart
 		// is added as a new column
@@ -137,12 +139,16 @@ void getGroundTruthData(){
 		gt[index][col].w = stoi(T);
 		getline(temp, T, ' ');
 		gt[index][col].h = stoi(T);
-		
+		std::cout << "end of one line" << std::endl;
+		if (index == 15){
+			break;
+		}
 		// cout<<"index: " <<index << endl;
 		// cout<< gt[index][0].x << " " << gt[index][0].y << " " <<gt[index][0].w << " "<<gt[index][0].w << endl;
 	}
 
 	f.close();
+	
 }
 
 
