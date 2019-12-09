@@ -35,7 +35,7 @@ void calcF1score();
 /** Global variables */
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
-datastruct gt[30][30];
+datastruct gt[16][16];
 int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
 
 
@@ -101,8 +101,10 @@ void getGroundTruthData(){
 	std::cout << "in GT" << std::endl;
 	
 	string line;
+	int oldIndex = 99;
 	int index;
 	string T;
+	int col = 0;
 
 	ifstream f;
 	f.open(GTFILENAME, ios::out);
@@ -110,23 +112,28 @@ void getGroundTruthData(){
 	// gets first line but we ignore it since its a comment
 	std::getline(f, line);
 		
-	while(!f.eof()){
+	// while(!f.eof()){
+	while(std::getline(f, line)){
 		// get a line
-		std::getline(f, line);
+		// std::getline(f, line);
 		// create a temp thing
 		std::stringstream temp(line);
 
 		// extract first value which is the index from line
 		getline(temp, T, ' ');
 		index = stoi(T);
+
 		std::cout << index << std::endl;
     	
+		if (oldIndex != index){
+			col = 0;
+		}
 		// dealing with images with more than one face/dart by adding as a new column
-		int col = 0;
+		/*int col = 0;
 		if(gt[index][col].x != 0){
 			col++;
 		}
-		else col = 0;
+		else col = 0;*/
 
 		// extracting each value for x y w h as integer
 		getline(temp, T, ' ');
@@ -141,8 +148,11 @@ void getGroundTruthData(){
 		if (index == 15){
 			break;
 		}
-		// cout<<"index: " <<index << endl;
-		// cout<< gt[index][0].x << " " << gt[index][0].y << " " <<gt[index][0].w << " "<<gt[index][0].w << endl;
+		cout<<"index: " <<index << endl;
+		cout << "col: " << col << endl;
+		cout<< gt[index][col].x << " " << gt[index][col].y << " " <<gt[index][col].w << " "<<gt[index][col].w << endl;
+		col++;
+		oldIndex = index;
 	}
 
 	f.close();
@@ -156,15 +166,26 @@ void drawGroundTruth(string fname, Mat frame){
 	int col = 0;
 	// get image number ie index as in int
 	index = fname[4]-48;
+	std::cout << index << std::endl;
 
+	for (int i = 0 ; i < 15; i++) {
+		cout<< gt[index][i].x << endl;
+	}
 	// draw rect
-	while(gt[index][col].x !=0){
+	while(gt[index][col].x != 0){
+		std::cout << col << std::endl;		
+
 		rectangle(frame, Point(gt[index][col].x, gt[index][col].y), Point(gt[index][col].x + gt[index][col].w, gt[index][col].y + gt[index][col].h), Scalar( 0, 0, 255 ), 2);
+		std::cout << "one drawn" << std::endl;
 		if (gt[index][col].x == 0){
+			std::cout << "I BREAK" << std::endl;
 			break;
 		}
-		else 
-			col++;
+		
+		std::cout << "add" << std::endl;
+		col++;
+		std::cout << gt[index][col].x << std::endl;
+		
 	}
 }
 
