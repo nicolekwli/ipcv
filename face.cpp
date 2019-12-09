@@ -82,31 +82,30 @@ void detectAndDisplay( string fname, Mat frame ){
 	// 4. Draw box around faces found
 	for( int i = 0; i < faces.size(); i++ ){
 		// print details of faces
-        std::cout << faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
+        std::cout << "data of detected face #"<< i+1 << " is: " ;
+		cout<< faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
 
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 
-		// use the struct to store these in another global array?
-		int l2_x, l2_y, r2_x, r2_y;
-		l2_x = faces[i].x;
-		l2_y = faces[i].y;
-		r2_x = faces[i].width;
-		r2_y = faces[i].height;
-
-		calcIOU(fname, l2_x, l2_y, r2_x, r2_y);
+		calcIOU(fname, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
 	}
+
+	// for(int i=0; i<no_of_faces[index]; i++){
+	// 	calcIOU(fname, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
+	// }
 }
 
 // ----- SUBTASK 1 ----------------------------------------------------------------
 
 void getGroundTruthData(){
 	std::cout << "in GT" << std::endl;
-
+	
 	string line;
 	int index;
+	string T;
+
 	ifstream f;
 	f.open(GTFILENAME, ios::out);
-	string T;
 	
 	// gets first line but we ignore it since its a comment
 	std::getline(f, line);
@@ -117,13 +116,12 @@ void getGroundTruthData(){
 		// create a temp thing
 		std::stringstream temp(line);
 
-		// extract index from line
+		// extract first value which is the index from line
 		getline(temp, T, ' ');
 		index = stoi(T);
 		std::cout << index << std::endl;
     	
-		// dealing with images with more than one face/dart
-		// is added as a new column
+		// dealing with images with more than one face/dart by adding as a new column
 		int col = 0;
 		if(gt[index][col].x != 0){
 			col++;
@@ -139,7 +137,7 @@ void getGroundTruthData(){
 		gt[index][col].w = stoi(T);
 		getline(temp, T, ' ');
 		gt[index][col].h = stoi(T);
-		std::cout << "end of one line" << std::endl;
+		//std::cout << "end of one line" << std::endl;
 		if (index == 15){
 			break;
 		}
@@ -158,7 +156,6 @@ void drawGroundTruth(string fname, Mat frame){
 	int col = 0;
 	// get image number ie index as in int
 	index = fname[4]-48;
-	cout<<"index is: "<< index <<endl;
 
 	// draw rect
 	while(gt[index][col].x !=0){
@@ -172,6 +169,7 @@ void drawGroundTruth(string fname, Mat frame){
 }
 
 /*
+this diagram is useful for iou calculation below
 l1----------
  |			|
  |	 l2-----|-------
@@ -179,111 +177,72 @@ l1----------
 	 |				|
 	 |				|
 	  -------------r2
+
+a legend of sorts:
+px, py, pw, ph -> predicted data
+gx, gy, gw, gh -> ground truth data
 */
-
-// a legend of sorts:
-// px, py, pw, ph -> predicted coordinates
-// gx, gy, gw, gh -> ground truth coordinates
-//float calcIOU(string fname, int l2_x, int l2_y, int r2_x, int r2_y){
 float calcIOU(string fname, int px, int py, int pw, int ph){
-	// - get index
+	// - get index & declare variables
 	int index = fname[4]-48;
-	float iou = 0.0;
-	int total, g_area, p_area = 0; 
-	float intersection = 0.0;
+	float iou = 0.0, intersect_area = 0.0;
+	int union_area, g_area, p_area = 0; 
 
-	// - make coordinate form since thats easier to understand
-	int gx, gy, gh, gw; // RIP!!??
-	gx = gt[index][0].x;
-	gy = gt[index][0].y;
-	gw = gt[index][0].w;
-	gh = gt[index][0].h;
+	// - just saving values here so that its easier to read
+	// TO FIX: currently this is only getting the first face i.e column is 0
+	// i assume iou is calculated PER image?
+	// so need some way to match the gt face to the detected faces 
+	// but this depends on how the detector finds its faces? i would assume randomly
+	// an idea is: save all detected faces in an array and then reorder it in ascending order
+	// then its easier to match them?
+	int gx = gt[index][0].x, gy = gt[index][0].y, gh = gt[index][0].w, gw = gt[index][0].h;
 
-	// - area of each rect
-	p_area = pw * ph; // width x height
+	// - area of each rect is width into height
+	p_area = pw * ph;
 	g_area = gw * gh;
 	
-	// - get points of intersecting rect
+	// - get points of the intersecting rectangle i.e l2 and r1 resp.
 	int ix1, iy1, ix2, iy2;
 	ix1 = min(gx + gw, px + pw);
 	ix2 = max(gx, px);
 	iy1 = min(gy + gh, py + ph);
 	iy2 = max(gy, py);
-	intersection = (ix1 - ix2) * (iy1 - iy2);
 
-	// --------------------------------------------
-			// // - for calculating iou, we need points
-			// // - dart4 coordinates:
-			// int l1_x, l1_y, r1_x, r1_y;
-			// l1_x = 330;
-			// l1_y = 100;
-			// r1_x = 460;
-			// r1_y = 240;
-
-			// // area for each bounding box
-			// 	// width x height ???
-			// g_area = (r1_x - l1_x) * (r1_y - l1_y);
-			// p_area = (r2_x - l2_x) * (r2_y - l2_y);
-
-			// // determine intersection area
-			// intersection = (min(r1_x, r2_x) - max(l1_x, l2_x)) *  
-			//             (min(r1_y, r2_y) - max(l1_y, l2_y)); 		
+	// - calc the area of intersection
+	intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);		
 
 	// determine union area
-	total = (g_area + p_area) - intersection;
+	union_area = (g_area + p_area) - intersect_area;
 	
 	// iou of the box
-	iou = abs(intersection) / abs(total);
+	iou = abs(intersect_area) / abs(union_area);
 
 	// return iou
 	std::cout << "iou: " << iou << std::endl;
 	return iou;
 }
 
-void calcTPR(){
-	// if iou >= 0.5 then TP
-	// True P Rate is the fraction ofsuccessfully detected faces out of all valid faces in an image
+
+// True P Rate is the fraction of successfully detected faces out of all valid faces in an image
+void calcTPR(float iou){
+	if (iou >= 0.5 ){
+		// then it is a true positive
+	}
 }
 
 
-void calcF1score(){
-	// formula: 2 * ([precision * recall]/[precision + recall])
+/*
+	formula is: 2 * ([precision * recall]/[precision + recall])
+	precision = TP / (TP + FP)
+	recall = TP / (TP + FN)
 
-	// precision = TP / (TP + FP)
-
-	// recall = TP / (TP + FN)
-
-	// we need:
-	// TP(from iou)
+	so we need the TP, FN, FP and FN
+	// TP(from iou?)
 	// TN(no of detected - no of actual faces) -> faces detected though they dont exist
 	// FP(no detected - no of actual) -> no faces but some are detected 
 	// FN(no of faces - no detected) -> there are faces but not detected
-
-/*
-
-positive class: % detected by the detector or face
-negative class: % not detected by detector or no face
-
+	// UH I DONT HINK ANY OF THIS IS CORRECT SADLY
 */
+void calcF1score(){
 
 }
-
-/*
-250 164 57 57
-513 177 55 55
-641 184 59 59
-191 214 65 65
-425 231 68 68
-290 242 63 63
-58 249 64 64
-554 244 69 69
-673 246 64 64
-695 599 59 59
-60 135 63 63
-377 190 57 57
-384 400 81 81
-528 482 170 170
-*/
-
-
-///-> whats broken: things that
