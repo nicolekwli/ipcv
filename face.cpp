@@ -35,8 +35,8 @@ void calcF1score();
 /** Global variables */
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
-datastruct gt[15][15];
-int no_of_face[15] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
+datastruct gt[16][16];
+int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
 
 
 /** @function main */
@@ -49,6 +49,7 @@ int main( int argc, const char** argv ){
 
 	// ---> display ground truth boxes
 	drawGroundTruth(argv[1], frame);
+	std::cout << "ground truth drawn" << std::endl;
 
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
@@ -99,6 +100,7 @@ void detectAndDisplay( string fname, Mat frame ){
 // ----- SUBTASK 1 ----------------------------------------------------------------
 
 void getGroundTruthData(){
+	std::cout << "in GT" << std::endl;
 	string line;
 	int index;
 	ifstream f;
