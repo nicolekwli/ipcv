@@ -29,7 +29,7 @@ struct datastruct {
 void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
-float calcIOU(string fname, int px, int py, int pw, int ph);
+float calcIOU(string fname, int px, int py, int pw, int ph, int col);
 void calcF1score();
 
 /** Global variables */
@@ -82,12 +82,67 @@ void detectAndDisplay( string fname, Mat frame ){
 	// 4. Draw box around faces found
 	for( int i = 0; i < faces.size(); i++ ){
 		// print details of faces
-        std::cout << "data of detected face #"<< i+1 << " is: " ;
+        	std::cout << "data of detected face #"<< i+1 << " is: " ;
 		cout<< faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
 
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 
-		calcIOU(fname, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
+	}
+
+	// IOU
+	// Plan: go though each ground truth and compare it to each face detecte
+	
+	// get the number of faces 
+	int index = fname[4]-48;
+	// need variable to keep track of which one has been included
+	// lets use a new array of with size of the number of actualy faces
+	int facesMatched[no_of_face[index]]; 
+
+
+	std::cout << index << std::endl;
+	// for each ground truth face we perform IOU with all detected faces
+	for (int j = 0; j < no_of_face[index]; j++){
+		float IOU = 0;
+		int IOUIndex;
+		float tempIOU;
+
+		// for each detected face 
+		// store the largest one
+		for (int k = 0; k < faces.size(); k++){
+			// perform IOU and compare to previous and store the larger one	
+			
+			tempIOU = calcIOU(fname, faces[k].x, faces[k].y, faces[k].width, faces[k].height, j);
+			// std::cout << "temp: " << tempIOU << std::endl;
+			if (IOU < tempIOU) {
+				if (j == 0){
+					IOU = tempIOU;
+				}
+				// replace and keep larger one
+				// store the actual order of detected faces in a new array
+				
+				// if the K is not in the facesMatched array, then store otherwise its no good
+				for (int l = 0; l < j; l++) {
+					if (l == 0){
+						IOU = tempIOU;
+						
+					}
+					else if (k != facesMatched[l]){
+						IOU = tempIOU;	
+						IOUIndex = k;
+					}
+					
+				}
+			} 		
+
+		}
+		// store final one in facesMatched
+		facesMatched[j] = IOUIndex;
+
+		// display the grround truth face we're currently at
+		std::cout << "gt face: " << j << std::endl;
+		// display the best IOU
+		std::cout << "iou: " << IOU << std::endl;
+	
 	}
 
 	// for(int i=0; i<no_of_faces[index]; i++){
@@ -148,8 +203,6 @@ void getGroundTruthData(){
 		if (index == 15){
 			break;
 		}
-		cout<<"index: " <<index << endl;
-		cout << "col: " << col << endl;
 		cout<< gt[index][col].x << " " << gt[index][col].y << " " <<gt[index][col].w << " "<<gt[index][col].w << endl;
 		col++;
 		oldIndex = index;
@@ -166,7 +219,6 @@ void drawGroundTruth(string fname, Mat frame){
 	int col = 0;
 	// get image number ie index as in int
 	index = fname[4]-48;
-	std::cout << index << std::endl;
 
 	for (int i = 0 ; i < 15; i++) {
 		cout<< gt[index][i].x << endl;
@@ -176,13 +228,10 @@ void drawGroundTruth(string fname, Mat frame){
 		std::cout << col << std::endl;		
 
 		rectangle(frame, Point(gt[index][col].x, gt[index][col].y), Point(gt[index][col].x + gt[index][col].w, gt[index][col].y + gt[index][col].h), Scalar( 0, 0, 255 ), 2);
-		std::cout << "one drawn" << std::endl;
 		if (gt[index][col].x == 0){
-			std::cout << "I BREAK" << std::endl;
 			break;
 		}
 		
-		std::cout << "add" << std::endl;
 		col++;
 		std::cout << gt[index][col].x << std::endl;
 		
@@ -203,7 +252,7 @@ a legend of sorts:
 px, py, pw, ph -> predicted data
 gx, gy, gw, gh -> ground truth data
 */
-float calcIOU(string fname, int px, int py, int pw, int ph){
+float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	// - get index & declare variables
 	int index = fname[4]-48;
 	float iou = 0.0, intersect_area = 0.0;
@@ -216,7 +265,7 @@ float calcIOU(string fname, int px, int py, int pw, int ph){
 	// but this depends on how the detector finds its faces? i would assume randomly
 	// an idea is: save all detected faces in an array and then reorder it in ascending order
 	// then its easier to match them?
-	int gx = gt[index][0].x, gy = gt[index][0].y, gh = gt[index][0].w, gw = gt[index][0].h;
+	int gx = gt[index][col].x, gy = gt[index][col].y, gh = gt[index][col].w, gw = gt[index][col].h;
 
 	// - area of each rect is width into height
 	p_area = pw * ph;
@@ -239,7 +288,6 @@ float calcIOU(string fname, int px, int py, int pw, int ph){
 	iou = abs(intersect_area) / abs(union_area);
 
 	// return iou
-	std::cout << "iou: " << iou << std::endl;
 	return iou;
 }
 
