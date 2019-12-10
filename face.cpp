@@ -30,6 +30,7 @@ void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
 float calcIOU(string fname, int px, int py, int pw, int ph, int col);
+float calcTPR(float iou[], int index);
 void calcF1score();
 
 /** Global variables */
@@ -98,7 +99,9 @@ void detectAndDisplay( string fname, Mat frame ){
 	// need variable to keep track of which one has been included
 	// lets use a new array of with size of the number of actualy faces
 	int facesMatched[no_of_face[index]]; 
-
+	
+	// NEED A LIST OF IOU TO PASS INTO TPR
+	float IOUs[no_of_face[index]];
 
 	std::cout << index << std::endl;
 	// for each ground truth face we perform IOU with all detected faces
@@ -137,12 +140,15 @@ void detectAndDisplay( string fname, Mat frame ){
 		}
 		// store final one in facesMatched
 		facesMatched[j] = IOUIndex;
-
+		IOUs[j] = IOU;
 		// display the grround truth face we're currently at
 		std::cout << "gt face: " << j << std::endl;
 		// display the best IOU
 		std::cout << "iou: " << IOU << std::endl;
 	}
+	std::cout << "TPR: " << std::endl;
+	float tpr = calcTPR(IOUs, index);
+	std::cout << tpr << std::endl;
 }
 
 // ----- SUBTASK 1 ----------------------------------------------------------------
@@ -292,10 +298,22 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 
 
 // True P Rate is the fraction of successfully detected faces out of all valid faces in an image
-void calcTPR(float iou){
-	if (iou >= 0.5 ){
-		// then it is a true positive
+// TP / (TP + FN)
+float calcTPR(float iou[], int index){
+	int TPCount = 0;
+
+	// for each IOU value
+	for (int i = 0 ; i < no_of_face[index]; i++){
+		if (iou[i] >= 0.5 ){
+			// then it is a true positivei
+			TPCount = TPCount + 1;
+		}
 	}
+	std::cout << TPCount << std::endl;
+	std::cout << no_of_face[index] << std::endl;
+	float tpr = (float) TPCount / no_of_face[index];
+	std::cout << tpr << std::endl;
+	return tpr;
 }
 
 
