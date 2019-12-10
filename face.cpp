@@ -31,7 +31,7 @@ void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
 float calcIOU(string fname, int px, int py, int pw, int ph, int col);
 float calcTPR(float iou[], int index);
-void calcF1score();
+float calcF1score(float iou[], int index, int noOfDetected);
 
 /** Global variables */
 String cascade_name = "frontalface.xml";
@@ -149,6 +149,11 @@ void detectAndDisplay( string fname, Mat frame ){
 	std::cout << "TPR: " << std::endl;
 	float tpr = calcTPR(IOUs, index);
 	std::cout << tpr << std::endl;
+
+	// F1
+	int noOfDetected = faces.size();
+	std::cout << "F1: " << std::endl; 
+	std::cout << calcF1score(IOUs, index, noOfDetected) << std::endl;
 }
 
 // ----- SUBTASK 1 ----------------------------------------------------------------
@@ -296,26 +301,23 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	return iou;
 }
 
-
 // True P Rate is the fraction of successfully detected faces out of all valid faces in an image
-// TP / (TP + FN)
 float calcTPR(float iou[], int index){
-	int TPCount = 0;
+	int TP = 0;
 
 	// for each IOU value
 	for (int i = 0 ; i < no_of_face[index]; i++){
 		if (iou[i] >= 0.5 ){
 			// then it is a true positivei
-			TPCount = TPCount + 1;
+			TP = TP + 1;
 		}
 	}
-	std::cout << TPCount << std::endl;
+	std::cout << TP << std::endl;
 	std::cout << no_of_face[index] << std::endl;
-	float tpr = (float) TPCount / no_of_face[index];
+	float tpr = (float) TP / no_of_face[index];
 	std::cout << tpr << std::endl;
 	return tpr;
 }
-
 
 /*
 	formula is: 2 * ([precision * recall]/[precision + recall])
@@ -323,12 +325,33 @@ float calcTPR(float iou[], int index){
 	recall = TP / (TP + FN)
 
 	so we need the TP, FN, FP and FN
-	// TP(from iou?)
-	// TN(no of detected - no of actual faces) -> faces detected though they dont exist
-	// FP(no detected - no of actual) -> no faces but some are detected 
-	// FN(no of faces - no detected) -> there are faces but not detected
-	// UH I DONT HINK ANY OF THIS IS CORRECT SADLY
-*/
-void calcF1score(){
+	// TP(TPCount)
+		// Those detected that are actually detected
 
+	// FP(no detected - no of actual) -> no faces but some are detected 
+		// Those not supposed to be detected but is detected
+		// no of faces detected- actual number 
+
+	// FN(no of faces - no detected) -> there are faces but not detected
+		// Those should be detected but not
+		// if IOU == 0
+*/
+float calcF1score(float iou[], int index, int noOfDetected){
+	int TP, FN = 0;
+	int FP = noOfDetected - no_of_face[index];
+
+	for (int i = 0 ; i < no_of_face[index]; i++){
+		if (iou[i] >= 0.5 ){
+			// then it is a true positive
+			TP = TP + 1;
+		if (iou[i] == 0) {
+			FN = FN + 1;}
+		}	
+	}
+
+	// ACTUAL F1	
+	float precision = (float) TP / (TP + FP);
+	float recall = (float) TP / (TP + FN);
+
+	return 2 * ((precision * recall)/(precision + recall));
 }
