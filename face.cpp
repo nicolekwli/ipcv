@@ -114,7 +114,9 @@ void detectAndDisplay( string fname, Mat frame ){
 			
 			tempIOU = calcIOU(fname, faces[k].x, faces[k].y, faces[k].width, faces[k].height, j);
 			// std::cout << "temp: " << tempIOU << std::endl;
-			if (IOU < tempIOU) {
+			// if ((IOU < tempIOU) && (tempIOU < 1)){
+			 if (IOU < tempIOU){
+
 				if (j == 0){
 					IOU = tempIOU;
 				}
@@ -125,16 +127,13 @@ void detectAndDisplay( string fname, Mat frame ){
 				for (int l = 0; l < j; l++) {
 					if (l == 0){
 						IOU = tempIOU;
-						
 					}
 					else if (k != facesMatched[l]){
 						IOU = tempIOU;	
 						IOUIndex = k;
 					}
-					
 				}
 			} 		
-
 		}
 		// store final one in facesMatched
 		facesMatched[j] = IOUIndex;
@@ -143,12 +142,7 @@ void detectAndDisplay( string fname, Mat frame ){
 		std::cout << "gt face: " << j << std::endl;
 		// display the best IOU
 		std::cout << "iou: " << IOU << std::endl;
-	
 	}
-
-	// for(int i=0; i<no_of_faces[index]; i++){
-	// 	calcIOU(fname, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
-	// }
 }
 
 // ----- SUBTASK 1 ----------------------------------------------------------------
@@ -257,31 +251,35 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	// - get index & declare variables
 	int index = fname[4]-48;
 	float iou = 0.0, intersect_area = 0.0;
-	int union_area, g_area, p_area = 0; 
+	float union_area;
+	int g_area, p_area = 0; 
 
-	// - just saving values here so that its easier to read
-	// TO FIX: currently this is only getting the first face i.e column is 0
-	// i assume iou is calculated PER image?
-	// so need some way to match the gt face to the detected faces 
-	// but this depends on how the detector finds its faces? i would assume randomly
-	// an idea is: save all detected faces in an array and then reorder it in ascending order
-	// then its easier to match them?
-	int gx = gt[index][col].x, gy = gt[index][col].y, gh = gt[index][col].w, gw = gt[index][col].h;
+	int gx = gt[index][col].x;
+	int gy = gt[index][col].y;
+	int gw = gt[index][col].w;
+	int gh = gt[index][col].h;
 
-	// - area of each rect is width into height
+	// might need to normalise these !!!!!!!!!!!!!!!!!!
+
+	// - area of each rect is width x height
 	p_area = pw * ph;
+	// g_area = gt[index][col].w * gt[index][col].h;
 	g_area = gw * gh;
-	
+
 	// - get points of the intersecting rectangle i.e l2 and r1 resp.
+	// top left, bottom right
 	int ix1, iy1, ix2, iy2;
 	ix1 = min(gx + gw, px + pw);
 	ix2 = max(gx, px);
 	iy1 = min(gy + gh, py + ph);
 	iy2 = max(gy, py);
 
-	// - calc the area of intersection
-	intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);		
 
+	// - calc the area of intersection
+	if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 1)){
+		intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);		
+	}
+	else return 0;
 	// determine union area
 	union_area = (g_area + p_area) - intersect_area;
 	
