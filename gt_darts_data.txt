@@ -1,7 +1,7 @@
-# this is the comment line
+# this is the comment lin x, y, width, height
 0 432 30 157 157
-1
-2
+1 158 112 250 250
+2 79 82 120 120
 3
 4
 5
