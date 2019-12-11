@@ -96,6 +96,12 @@ void detectAndDisplay( string fname, Mat frame ){
 	
 	// get the number of faces 
 	int index = fname[4]-48;
+	char dot = '.';
+	if (fname[5] != dot){
+		cout << "AM HERE" << endl;
+		
+		index = stoi(to_string(index) + to_string(fname[5] - 48));
+	}
 	// need variable to keep track of which one has been included
 	// lets use a new array of with size of the number of actualy faces
 	int facesMatched[no_of_face[index]]; 
@@ -103,6 +109,7 @@ void detectAndDisplay( string fname, Mat frame ){
 	// NEED A LIST OF IOU TO PASS INTO TPR
 	float IOUs[no_of_face[index]];
 
+	cout << "INDEX" << endl;
 	std::cout << index << std::endl;
 	// for each ground truth face we perform IOU with all detected faces
 	for (int j = 0; j < no_of_face[index]; j++){
@@ -339,7 +346,7 @@ float calcTPR(float iou[], int index){
 float calcF1score(float iou[], int index, int noOfDetected){
 	int TP, FN = 0;
 	int FP = noOfDetected - no_of_face[index];
-
+	cout << "index" << index << endl;
 	for (int i = 0 ; i < no_of_face[index]; i++){
 		if (iou[i] >= 0.5 ){
 			// then it is a true positive
