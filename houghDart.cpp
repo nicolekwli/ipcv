@@ -24,7 +24,6 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY);
 
 void detectAndDisplay( Mat frame );
-void gaussianBlurFilter( Mat &input, Mat &gblur );
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
@@ -57,8 +56,8 @@ int main( int argc, const char** argv ){
 
 	// for hough
 	// thresholding the gradient magnitude image
-	// thresholding(mag, thresh);
-	// then do hough
+	thresholding(mag, thresh);
+	// hough();
 
 	// 4. Save Result Image
 	imwrite( "oursobel.jpg", mag );
@@ -126,7 +125,6 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 	// direction of gradient
 	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
 	direction(sobe, scaledX, scaledY, dir);
-	imwrite ( "dir.jpg", dir);
 	
 			// convert sobel to image format
 			// may not need this if we're already scaling the image
@@ -186,6 +184,7 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 }
 
 
+
 void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
 	scaledX.create(dx.size(), dx.type()); 
 	scaledY.create(dy.size(), dy.type()); 
@@ -206,6 +205,7 @@ void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
 		}
 	}
 }
+
 
 
 // magnitude of gradient for sobel
@@ -233,46 +233,60 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 }
 
 
-// need for hough
-void thresholding( Mat &input, Mat &thresholded){
-	cout<< "also hereeeeee" << endl;
+// technically, code-wise, this works
+// but image doesnt look great? need a better thresh value
+// -> to get set of pixels with trongest g. magnitude to be considered for circle detection
+void thresholding( Mat &mag, Mat &thresh){
+	thresh.create(mag.size(), mag.type());
+	for (int i = 0; i < mag.rows; i++) {
+		for (int j = 0; j < mag.cols; j++ ) {
+			if (mag.at<uchar>(i,j) > 190 ) {
+				thresh.at<uchar>(i,j) = 255;
+			}
+			else {
+				thresh.at<uchar>(i,j) = 0;
+			}
+		}
+	}
 
-	// take gradient magnitude and apply thresholding operation
-	// -> to get set of pixels with trongest g. magnitude to be considered for circle detection
-	thresholded = cv::Mat (input.rows, input.cols, CV_32FC1);
-
-	// how to go through values of pixelsssss
-	// for (int i = 0; i < input.rows; i++) {
-	// 	for (int j = 0; j < input.cols; j++ ) {
-	// 		if (input.at<double>(i,j) > 105 ) {
-	// 			thresholded.at<double>(i,j) = 255;
-	// 		}
-	// 		else {
-	// 			thresholded.at<double>(i,j) = 0;
-	// 		}
-	// 	}
-	// }
-
-	cv::threshold(input, thresholded, 150, 0, THRESH_BINARY);
-
+	imwrite("thresh.jpg", thresh);
 }
 
 
-// ---> min/max radius and distance between circle centres
-void hough( Mat tgMagImage, int threshold ){
-	int houghSpace[5][5][5]; //????????
-	vector<Vec3f> output;
 
+// ---> min/max radius and distance between circle centres
 	// calculates 3D hough space (xo, yo, r) from threshold g. mag. image and gradient orientation image
 	// decide size (no of cells) in hough space
-
-
 	// display hough space for each image
 	// --> create a 2D image
 	// ---> take log of the image to make values more descriptive
 
-
 	// threshold the hough space and display the set of found circles on og images 
+void hough( Mat &mag, Mat &dir, int peak, Mat &hresult){
+	// eq of circle: (x-a)^2 + (y-b)^2 = r^2
+	int a = mag.rows;
+	int b = mag.cols;
+	int r = sqrt(pow(rows, 2) + pow(cols, 2));
+
+	// need to know if array is better or vector?
+	int houghSpace[5][5][5];
+	// initialize w/ 0s
+	
+
+	std::vector<Vec3f> output;
+
+	// 1. for any pixel satisfying |G()| > Ts, increment all elements satisying the following:
+	//		for all r, xo = x +- rcos(dir)
+	//				   yo = y +- rsin(dir)
+	//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
+
+	// 2. in parameter space, any element H(xo, yo, r) > Th
+	//		represents a circle with radius r located at (xo, yo) in the image
+
+
+	// openCV library func:
+	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
+
 }
 
 
