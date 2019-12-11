@@ -49,9 +49,6 @@ int main( int argc, const char** argv ){
 	// 1. Read Input Image
 	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
-	// ---> display ground truth boxes
-	drawGroundTruth(argv[1], frame);
-
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
@@ -157,6 +154,10 @@ void drawGroundTruth(string fname, Mat frame){
 	int col = 0;
 	// get image number ie index as in int
 	index = fname[4]-48;
+	char dot = '.';
+	if (fname[5] != dot){
+		index = stoi(to_string(index) + to_string(fname[5] - 48));
+	}	
 	cout<<"index is: "<< index <<endl;
 
 	// draw rect

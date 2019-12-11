@@ -18,7 +18,8 @@ using namespace std;
 using namespace cv;
 
 /* constants */
-const std::string GTFILENAME = "gt_faces_data.txt";
+// const std::string GTFILENAME = "gt_faces_data.txt";
+const std::string GTFILENAME = "gt_darts_data.txt";
 
 /* struct that contains data OF an IMAge to draw bb */
 struct datastruct {
@@ -34,11 +35,12 @@ float calcTPR(float iou[], int index);
 float calcF1score(float iou[], int index, int noOfDetected);
 
 /** Global variables */
-String cascade_name = "frontalface.xml";
+// String cascade_name = "frontalface.xml";
+String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
 datastruct gt[16][16];
-int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
-
+// int no_of_face[16] = {0, 0, 0, 0, 1, 11, 1, 1, 0, 1, 0, 1, 0, 1, 2, 0};
+int no_of_face[16] = {1,1,1,1,1,1,1,1,2,1,3,1,1,1,2,1};
 
 /** @function main */
 int main( int argc, const char** argv ){
@@ -98,8 +100,6 @@ void detectAndDisplay( string fname, Mat frame ){
 	int index = fname[4]-48;
 	char dot = '.';
 	if (fname[5] != dot){
-		cout << "AM HERE" << endl;
-		
 		index = stoi(to_string(index) + to_string(fname[5] - 48));
 	}
 	// need variable to keep track of which one has been included
@@ -232,7 +232,10 @@ void drawGroundTruth(string fname, Mat frame){
 	int col = 0;
 	// get image number ie index as in int
 	index = fname[4]-48;
-
+	char dot = '.';
+	if (fname[5] != dot){
+		index = stoi(to_string(index) + to_string(fname[5] - 48));
+	}
 	for (int i = 0 ; i < 15; i++) {
 		cout<< gt[index][i].x << endl;
 	}
@@ -268,6 +271,10 @@ gx, gy, gw, gh -> ground truth data
 float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	// - get index & declare variables
 	int index = fname[4]-48;
+	char dot = '.';
+	if (fname[5] != dot){
+		index = stoi(to_string(index) + to_string(fname[5] - 48));
+	}
 	float iou = 0.0, intersect_area = 0.0;
 	float union_area;
 	int g_area, p_area = 0; 
