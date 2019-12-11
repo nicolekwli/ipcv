@@ -21,6 +21,7 @@ using namespace cv;
 /** Function Headers */
 void sobelOpenCV( Mat &input, Mat &sobel );
 void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobel);
+void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY);
 
 void detectAndDisplay( Mat frame );
 void gaussianBlurFilter( Mat &input, Mat &gblur );
@@ -35,6 +36,7 @@ void hough( Mat tgMagImage, int threshold);
 String cascade_name = "frontalface.xml";
 CascadeClassifier cascade;
 
+
 /** @function main */
 int main( int argc, const char** argv ){
 	// 1. Read Input Image
@@ -47,36 +49,27 @@ int main( int argc, const char** argv ){
 	// 3. Detect Faces and Display Result
 	// detectAndDisplay( frame );
 
-	// // thresholding the gradient magnitude image
-	// thresholding(mag, thresh);
-		
-
-//-------------------------------------------------------------------------
+	// declaring all the matrices here
 	cv::Mat dx, dy, mag, dir, thresh, gblur, sobe, so;
 
-	sobelOpenCV(frame, so);
+	//sobelOpenCV(frame, so);
 	sobelDetection(frame, dx, dy, mag, dir, sobe);
 
-//-------------------------------------------------------------------------
-
+	// for hough
+	// thresholding the gradient magnitude image
+	// thresholding(mag, thresh);
+	// then do hough
 
 	// 4. Save Result Image
-	imwrite( "helpme.jpg", sobe );
-	//imwrite( "mag.jpg", dx );
+	imwrite( "oursobel.jpg", mag );
 
 	return 0;
 }
 
 
-void gaussianBlurFilter( Mat &input, Mat &gblur ){
-	// this hsould be Gaussian kernal idk
-	
-	// use a gaussian blur first to get rid of the kow freq stuff noisee
-	//or not ??
-
-	// literally just convolving with a small gaussian kernel
-}
-
+/*
+*	 this is sobel's using openCVs library
+*/
 void sobelOpenCV( Mat &input, Mat &sobel ){
   sobel = cv::Mat (input.rows, input.cols, CV_32FC1);
 
@@ -90,58 +83,63 @@ void sobelOpenCV( Mat &input, Mat &sobel ){
   /// Gradient X
   Sobel( input, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT );
   convertScaleAbs( grad_x, abs_grad_x );
-
-  	imwrite( "sobelX.jpg", abs_grad_x );
-
+  	// imwrite( "sobelX.jpg", abs_grad_x );
 
   /// Gradient Y
   Sobel( input, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
   convertScaleAbs( grad_y, abs_grad_y );
-
-	imwrite( "sobelY.jpg", abs_grad_y );
-
+	// imwrite( "sobelY.jpg", abs_grad_y );
 
   /// Total Gradient (approximate)
-  addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, sobel ); // ---> also might be missing this?
-															// this is the averaging part i think??
-															// need to scale or the values mean nothing????
-
+  addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, sobel );
 }
 
 
+/*
+*		our implementation of sobel !!
+*/
 void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe){
 
 	Mat abs_grad_x, abs_grad_y;
 	sobe.create(input.size(), input.type());
 	mag.create(input.size(), input.type());
 
-	  		//GaussianBlur( input, input, Size(3,3), 0, 0, BORDER_DEFAULT ); -> makes it only slightly better
+	//GaussianBlur( input, input, Size(3,3), 0, 0, BORDER_DEFAULT ); -> makes it only slightly better
 
 	// Compute image containing derivative in x direction and y direction
 	ddx(input, dx, dy);
- 	 convertScaleAbs( dx, abs_grad_x );
-  	 convertScaleAbs( dy, abs_grad_y );
-  	addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, sobe ); // need this to combine result x and result y
+	// using openCV's scaling function
+			// convertScaleAbs( dx, abs_grad_x );
+			// convertScaleAbs( dy, abs_grad_y );
 
+	// using our own scaling function
+	cv::Mat scaledX, scaledY;
+	scaling(dx, dy, scaledX, scaledY);
 
-	imwrite( "mag.jpg", abs_grad_y );
+  	addWeighted(scaledX, 0.5, scaledY, 0.5, 0, sobe ); // need this to combine result x and result y
+	imwrite( "ourSobelY.jpg", scaledY ); // image w deriv in y direction
+	imwrite( "ourSobelX.jpg", scaledX ); // image w deriv in x direction
 
 	// magnitude of gradient
-	// magnitude(sobe, abs_grad_x, abs_grad_y, mag);
+	magnitude(sobe, scaledX, scaledY, mag);
+
+	cout << "mag is = " << endl << " " << scaledX << endl << endl;
+	cout<< "SCALEDX!!" <<endl;
+
 
 	// // direction of gradient
 	// direction(input, dx, dy, dir);
 	
-	//sobe.convertTo(sobe, CV_8UC1);
-	//mag.convertTo(mag, CV_8UC1);
-
+	// convert sobel to image format
+	// may not need this if we're already scaling the image
+	// this was only needed when we used 32FC1 since that is not an image format
+	// whereas CV_8UC1 is an image format
+	// sobe.convertTo(sobe, CV_8UC1);
 }
 
 
 // derivation in x direction
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
-	int size = 3; // size of the kernel matrix
-
 	// need to initialise the output back to sobel
 	resultX.create(input.size(), input.type());
 	resultY.create(input.size(), input.type());
@@ -187,7 +185,34 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 			resultY.at<uchar>(i,j) = (uchar) sumY;
 		}
 	}	
+
+	cout << "resX is = " << endl << " " << resultX << endl << endl;
+	cout<< "resultX!! ?? " << endl;
+	
 }
+
+
+void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
+	scaledX.create(dx.size(), dx.type()); 
+	scaledY.create(dy.size(), dy.type()); 
+
+	for (int i = 0; i < dx.rows; i++) {
+		for (int j = 0; j < dx.cols; j++) {
+			/*
+			so we have(HAD?idk where they went) -ve and +ve values
+			need to scale it from 0 to 255 
+			all -ve values are values <128 and +ve values are >128
+			*/
+		
+			scaledX.at<uchar>(i,j) = 128 + dx.at<uchar>(i,j); 
+			scaledY.at<uchar>(i,j) = 128 + dy.at<uchar>(i,j);
+
+			// somehow i accidentally fixed things?
+			// the above logic is only meant for the case with -ve and +ve
+		}
+	}
+}
+
 
 // magnitude of gradient for sobel
 // pythagras theorem!!!!!!!!!!!!!!! SSS HH OOO KK
@@ -197,7 +222,7 @@ void magnitude (cv::Mat &input, cv::Mat &dx, cv::Mat &dy, cv::Mat &mag) {
 	mag.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			mag.at<double>(i,j) = sqrt( pow(dx.at<double> (i,j), 2) + pow(dy.at<double> (i,j), 2));	
+			mag.at<uchar>(i,j) = sqrt( pow(dx.at<uchar> (i,j), 2) + pow(dy.at<uchar> (i,j), 2));	
 		}
 	}
 }
@@ -281,6 +306,5 @@ void detectAndDisplay( Mat frame ){
 	}*/
 
 }
-
 
 
