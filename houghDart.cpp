@@ -123,18 +123,16 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 	// magnitude of gradient
 	magnitude(sobe, scaledX, scaledY, mag);
 
-	cout << "mag is = " << endl << " " << scaledX << endl << endl;
-	cout<< "SCALEDX!!" <<endl;
-
-
-	// // direction of gradient
-	// direction(input, dx, dy, dir);
+	// direction of gradient
+	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
+	direction(sobe, scaledX, scaledY, dir);
+	imwrite ( "dir.jpg", dir);
 	
-	// convert sobel to image format
-	// may not need this if we're already scaling the image
-	// this was only needed when we used 32FC1 since that is not an image format
-	// whereas CV_8UC1 is an image format
-	// sobe.convertTo(sobe, CV_8UC1);
+			// convert sobel to image format
+			// may not need this if we're already scaling the image
+			// this was only needed when we used 32FC1 since that is not an image format
+			// whereas CV_8UC1 is an image format
+			// sobe.convertTo(sobe, CV_8UC1);
 }
 
 
@@ -185,10 +183,6 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 			resultY.at<uchar>(i,j) = (uchar) sumY;
 		}
 	}	
-
-	cout << "resX is = " << endl << " " << resultX << endl << endl;
-	cout<< "resultX!! ?? " << endl;
-	
 }
 
 
@@ -203,7 +197,7 @@ void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
 			need to scale it from 0 to 255 
 			all -ve values are values <128 and +ve values are >128
 			*/
-		
+
 			scaledX.at<uchar>(i,j) = 128 + dx.at<uchar>(i,j); 
 			scaledY.at<uchar>(i,j) = 128 + dy.at<uchar>(i,j);
 
@@ -218,25 +212,28 @@ void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
 // pythagras theorem!!!!!!!!!!!!!!! SSS HH OOO KK
 // how big is the edge at this direction
 // scale it??
-void magnitude (cv::Mat &input, cv::Mat &dx, cv::Mat &dy, cv::Mat &mag) {
+void magnitude (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &mag) {
 	mag.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			mag.at<uchar>(i,j) = sqrt( pow(dx.at<uchar> (i,j), 2) + pow(dy.at<uchar> (i,j), 2));	
+			mag.at<uchar>(i,j) = sqrt( pow(scaledX.at<uchar>(i,j), 2) + pow(scaledY.at<uchar>(i,j), 2) );	
 		}
 	}
 }
 
-// what this do
-void direction (cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction){
-	direction = cv::Mat (input.rows, input.cols, CV_32FC1);
+
+// the image of this LOOKS BAD dont be afraid
+void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir){
+	dir.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
-		for (int j = 0; j < input.cols; j++ ) {
-			direction.at<double>(i,j) = atan( ddy.at<double> (i,j) / ddx.at<double> (i,j));
+		for (int j = 0; j < input.cols; j++) {
+			dir.at<uchar>(i,j) = atan( scaledY.at<double>(i,j) / scaledX.at<double>(i,j));
 		}
 	}
 }
 
+
+// need for hough
 void thresholding( Mat &input, Mat &thresholded){
 	cout<< "also hereeeeee" << endl;
 
