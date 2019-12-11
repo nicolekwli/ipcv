@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// COMS30121 - face.cpp
+// COMS30121 - dart.cpp
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -27,32 +27,40 @@ struct datastruct {
 };
 
 /** Function Headers */
-void detectAndDisplay( Mat frame );
+void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
+float calcIOU(string fname, int px, int py, int pw, int ph, int col);
+float calcTPR(float iou[], int index);
+float calcF1score(float iou[], int index, int noOfDetected);
+
 
 /** Global variables */
 String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
-datastruct gt[15][15];
-int no_of_darts[15]={1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 2, 1};
+datastruct gt[16][16];
+int no_of_darts[16]={1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 2, 1};
 
 /** @function main */
 int main( int argc, const char** argv ){
-		// get gt data from file
+	// get gt data from file
 	getGroundTruthData();
 
 	// 1. Read Input Image
 	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
-		// ---> display ground truth boxes
+	// ---> display ground truth boxes
 	drawGroundTruth(argv[1], frame);
 
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
+	// draw and display gt boxes
+	drawGroundTruth(argv[1], frame);
+	std::cout << "ground truth drawn" << std::endl;
+
 	// 3. Detect Faces and Display Result
-	detectAndDisplay( frame );
+	detectAndDisplay( argv[1], frame );
 
 	// 4. Save Result Image
 	imwrite( "detectedGTDarts.jpg", frame );
@@ -62,10 +70,7 @@ int main( int argc, const char** argv ){
 
 
 /** @function detectAndDisplay **/
-// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
-// it does though??????????
-void detectAndDisplay( Mat frame )
-{
+void detectAndDisplay( string fname, Mat frame ){
 	std::vector<Rect> faces;
 	Mat frame_gray;
 
@@ -82,7 +87,7 @@ void detectAndDisplay( Mat frame )
        // 4. Draw box around faces found
 	for( int i = 0; i < faces.size(); i++ ){
 		// print details of faces
-        std::cout << faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
+        	std::cout << faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
 
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 	}
@@ -90,18 +95,23 @@ void detectAndDisplay( Mat frame )
 
 
 void getGroundTruthData(){
+	cout << "in GT" << endl;
+
 	string line;
+	int oldIndex = 99;
 	int index;
+	string T;
+	int col = 0;
+	
 	ifstream f;
 	f.open(GTFILENAME, ios::out);
-	string T;
-	
+
 	// gets first line but we ignore it since its a comment
 	std::getline(f, line);
 		
-	while(!f.eof()){
+	while(getline(f, line)){
 		// get a line
-		std::getline(f, line);
+		// std::getline(f, line);
 		// create a temp thing
 		std::stringstream temp(line);
 
@@ -110,12 +120,9 @@ void getGroundTruthData(){
 		index = stoi(T);
     	
 		// dealing with images with more than one face/dart
-		// is added as a new column
-		int col = 0;
-		if(gt[index][col].x != 0){
-			col++;
-		}
-		else col = 0;
+		if (oldIndex != index) {
+			col = 0;
+		}		
 
 		// extracting each value for x y w h as integer
 		getline(temp, T, ' ');
@@ -126,9 +133,17 @@ void getGroundTruthData(){
 		gt[index][col].w = stoi(T);
 		getline(temp, T, ' ');
 		gt[index][col].h = stoi(T);
-		
+	
+		if (index == 15){
+			break;
+		}
+
+	
 		// cout<<"index: " <<index << endl;
 		 cout<< gt[index][0].x << " " << gt[index][0].y << " " <<gt[index][0].w << " "<<gt[index][0].w << endl;
+	
+		col++;
+		oldIndex = index;
 	}
 
 	f.close();
@@ -150,7 +165,8 @@ void drawGroundTruth(string fname, Mat frame){
 		if (gt[index][col].x == 0){
 			break;
 		}
-		else 
-			col++;
+		 
+		col++;
+		
 	}
 }
