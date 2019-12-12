@@ -234,12 +234,9 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 	dir.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			dir.at<uchar>(i,j) = atan( scaledY.at<float>(i,j) / scaledX.at<float>(i,j));
+			dir.at<uchar>(i,j) = atan( scaledY.at<double>(i,j) / scaledX.at<double>(i,j));
 		}
 	}
-
-	//cout << "KY is = " << endl << " " << dir << endl << endl;
-
 }
 
 
@@ -276,7 +273,7 @@ void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 	// draw a circle with radius r
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
-		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 0, 0, 255 ), 2);
+		cv::circle(frame, Point(temp[0], temp[1]), temp[2]+maxR, Scalar( 255, 0, 0 ), 2);
 	}
 
 	imwrite("houghDetected.jpg", frame);
