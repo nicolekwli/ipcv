@@ -101,7 +101,7 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 
 	Mat abs_grad_x, abs_grad_y;
 	sobe.create(input.size(), input.type());
-	mag.create(input.size(), input.type());
+	//mag.create(input.size(), input.type());
 
 	//GaussianBlur( input, input, Size(3,3), 0, 0, BORDER_DEFAULT ); -> makes it only slightly better
 
@@ -112,20 +112,26 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 			// convertScaleAbs( dy, abs_grad_y );
 
 	// using our own scaling function
-	cv::Mat scaledX, scaledY;
-	scaling(dx, dy, scaledX, scaledY);
-
-  	addWeighted(scaledX, 0.5, scaledY, 0.5, 0, sobe ); // need this to combine result x and result y
-	imwrite( "ourSobelY.jpg", scaledY ); // image w deriv in y direction
-	imwrite( "ourSobelX.jpg", scaledX ); // image w deriv in x direction
+	//cv::Mat scaledX, scaledY;
+	//scaling(dx, dy, scaledX, scaledY);
+	magnitude (input, dx, dy, mag);
+	direction (input, dx,dy,dir);	
+  	//addWeighted(scaledX, 0.5, scaledY, 0.5, 0, sobe ); // need this to combine result x and result y
+	normalize(dx, dx, 0, 255, 32, -1);
+	normalize(dy, dy, 0, 255, 32, -1);
+	imwrite( "ourSobelY.jpg", dy ); // image w deriv in y direction
+	imwrite( "ourSobelX.jpg", dx ); // image w deriv in x direction
 
 	// magnitude of gradient
-	magnitude(sobe, scaledX, scaledY, mag);
+	//magnitude(sobe, scaledX, scaledY, mag);
+	normalize(mag, mag, 0, 255, 32, -1);
+	imwrite("MAGN.jpg", mag);
 
+	normalize(dir,dir,0,255,32,-1);
+	imwrite("DIRECTION.jpg", dir);
 	// direction of gradient
 	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
-	direction(sobe, scaledX, scaledY, dir);
-	
+	//direction(sobe, scaledX, scaledY, dir);
 			// convert sobel to image format
 			// may not need this if we're already scaling the image
 			// this was only needed when we used 32FC1 since that is not an image format
@@ -137,8 +143,8 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 // derivation in x direction
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 	// need to initialise the output back to sobel
-	resultX.create(input.size(), input.type());
-	resultY.create(input.size(), input.type());
+	resultX.create(input.size(), CV_64FC1);
+	resultY.create(input.size(), CV_64FC1);
 
 	// initialise kernels
 	cv::Mat kernel_X = (Mat_<float>(3,3) << -1, 0, 1, -2, 0, 2, -1, 0, 1);
@@ -177,8 +183,8 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 					sumY += inputVal * kernelValY;
 				}
 			}	
-			resultX.at<uchar>(i,j) = (uchar) sumX;			
-			resultY.at<uchar>(i,j) = (uchar) sumY;
+			resultX.at<double>(i,j) = (double) sumX;			
+			resultY.at<double>(i,j) = (double) sumY;
 		}
 	}	
 }
@@ -213,10 +219,10 @@ void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
 // how big is the edge at this direction
 // scale it??
 void magnitude (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &mag) {
-	mag.create(input.size(), input.type());
+	mag.create(input.size(), CV_64FC1);
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			mag.at<uchar>(i,j) = sqrt( pow(scaledX.at<uchar>(i,j), 2) + pow(scaledY.at<uchar>(i,j), 2) );	
+			mag.at<double>(i,j) = sqrt( pow(scaledX.at<double>(i,j), 2) + pow(scaledY.at<double>(i,j), 2) );	
 		}
 	}
 }
@@ -266,7 +272,7 @@ void hough( Mat &mag, Mat &dir, int peak, Mat &hresult){
 	// eq of circle: (x-a)^2 + (y-b)^2 = r^2
 	int a = mag.rows;
 	int b = mag.cols;
-	int r = sqrt(pow(rows, 2) + pow(cols, 2));
+	//	int r = sqrt(pow(rows, 2) + pow(cols, 2));
 
 	// need to know if array is better or vector?
 	int houghSpace[5][5][5];
