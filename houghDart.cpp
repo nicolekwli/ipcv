@@ -28,8 +28,8 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
 void thresholding(Mat &input, Mat &thresholded);
-void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR);
-vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR);
+void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
 
 
 /** Global variables */
@@ -56,11 +56,20 @@ int main( int argc, const char** argv ){
 	sobelDetection(frame_gray, dx, dy, mag, dir, sobe);
 
 	// thresholding the gradient magnitude image
+	// DO NOT need to pass this into hough()
 	thresholding(mag, thresh);
 
-	// hough(colour image, mag matrix, dir matrix, peak threshold, max radius, min radius)
-	hough(frame, thresh, dir, 190, 40, 5);
-
+	/*	params:
+			- the original image so we can draw circles
+			- magnitude matrix
+			- gradient direction matrix
+			- threshold that is used in the thresholding function 
+			- peak -> no. of votes greater than which we consider that point the centre of a circle
+			- max radius
+			- min radius
+	*/
+	//hough(frame, mag, dir, 180, 190, 40, 5);
+	hough(frame, thresh, dir, 180,15,40,15);
 	// 4. Save Result Image
 	imwrite( "HOUGH.jpg", frame );
 
@@ -68,6 +77,8 @@ int main( int argc, const char** argv ){
 }
 
 
+// ----------------------------------------------------------------------------------------------------
+// ---------- SOBEL THINGS --------------------------------------------------
 /*
 *	 this is sobel's using openCVs library
 */
@@ -188,14 +199,15 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 }
 
 
-// technically, code-wise, this works
-// but image doesnt look great? need a better thresh value
+// ----------------------------------------------------------------------------------------------------
+// ---------- HOUGH THINGS --------------------------------------------------
+
 // -> to get set of pixels with trongest g. magnitude to be considered for circle detection
 void thresholding( Mat &mag, Mat &thresh){
 	thresh.create(mag.size(), mag.type());
 	for (int i = 0; i < mag.rows; i++) {
 		for (int j = 0; j < mag.cols; j++ ) {
-			if (mag.at<double>(i,j) > 150 ) {
+			if (mag.at<double>(i,j) > 100 ) {
 				thresh.at<double>(i,j) = 255;
 			}
 			else {
@@ -207,24 +219,25 @@ void thresholding( Mat &mag, Mat &thresh){
 	imwrite("thresh.jpg", thresh);
 }
 
-
 // mag, dir, hspace
 // dont need frame
 // 190,40,5
 // maxR is frame.rows/2
-void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
+
+void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
 	vector<cv::Vec3i> detectedDarts;
 	if (frame.rows < frame.cols) {
 		maxR = frame.rows / 2;
 	}
 	else maxR = frame.cols / 2;
 	// houghLineDetection();
-	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
+	
+	detectedDarts = houghCircleDetection( mag, dir, thresh, peak, maxR, minR);
 
 	// draw a circle with radius r
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
-		cv::circle(frame, Point(temp[0], temp[1]), temp[2]+maxR, Scalar( 255, 0, 0 ), 2);
+		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
 	}
 
 	// view the vector
@@ -235,103 +248,95 @@ void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 
 
 // eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
-vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
 
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
+	vector<cv::Vec3i> darts; //struct that holds 3 ints
+	int x0pos, x0neg, y0pos, y0neg;
 	int rows = mag.rows;
 	int cols = mag.cols;
 
 	// What does this value need to be
-	int thresh = 250; // this is a pixel value (ie Ts)
-	vector<cv::Vec3i> darts; //struct that holds 3 ints
+	// int thresh = 250; // this is a pixel value (ie Ts)
 
 	int ***hspace3D;
 	//  Allocate 3D Array
-	hspace3D = new int**[rows];
-	for(int i = 0; i < rows; i++){
-		hspace3D[i] = new int*[cols];
-		for(int j = 0; j < cols; j++){
+	hspace3D = new int**[cols];
+	for(int i = 0; i < cols; i++){
+		hspace3D[i] = new int*[rows];
+		for(int j = 0; j < rows; j++){
 			hspace3D[i][j] = new int[maxR];
       		}
 	}
 
 	// step size -> can have step size if we want to make hough calcualtions faster
 	// can be a subtask 4 thing?
-	// initialize w 0s
-	for(int x=0; x< rows; x++){
-		for(int y=0; y< cols; y++){
+	// initialize 3D array w 0s
+	for(int x=0; x< cols; x++){
+		for(int y=0; y< rows; y++){
 			for(int r = 0; r < maxR; r++){
 				hspace3D[x][y][r] = 0;
 			}
 		}
 	}
 
-	//cout << "KY is = " << endl << " " << mag << endl << endl;
-
-	//int x0pos, x0neg, y0pos, y0neg;
-		// 1. for any pixel satisfying |Mag(x,y)| > Ts, increment all elements satisying the following:
-		//		for all r, xo = x +- rcos(dir(x,y))
-		//				   yo = y +- rsin(dir(x,y))
-		//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
 
 	// x and y is the center of a circle
-	for (int x=0; x< rows; x++){
-		for (int y=0; y< cols; y++){
-
-			// we do this since we only care about edges
-			// if (mag.at<uchar>(x,y) > 255 ){
-
-				// for all radii from min to max possible r
-				for (int r = 0; r < maxR; r++){
+	for (int x=0; x< cols; x++){
+		for (int y=0; y< rows; y++){
+			// if (mag.at<double>(y,x) > 0) cout << mag.at<double>(y,x) << endl;
+			  if (mag.at<double>(y,x) == 255 ){
+				for (int r = minR; r < maxR; r++){
 					// hough based on gradient direction given by dir matrix
-					int x0, y0;
-					// -ve
-					x0 = x - (int)(r * cos(dir.at<double>(x, y)));
-					y0 = y - (int)(r * sin(dir.at<double>(x, y)));
-					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
-						hspace3D[x0][y0][r] += 1; // plus one vote
-					}
-					// +ve
-					x0 = x + (int)(r * cos(dir.at<double>(x, y)));
-					y0 = y + (int)(r * sin(dir.at<double>(x, y)));
-					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
-						hspace3D[x0][y0][r] += 1; // plus one vote
+					for (int t = dir.at<uchar>(y,x) - 10; t < dir.at<uchar>(y,x) + 10; t++){
+						// -ve
+						int x0 = x - (int)(r * cos(t));
+						int y0 = y - (int)(r * sin(t));
+						if (x0 >= 0 && y0 >= 0 && x0 < cols && y0 < rows){
+							hspace3D[x0][y0][r] += 1; // plus one vote
+						}
+						// +ve
+						x0 = x + (int)(r * cos(t));
+						y0 = y + (int)(r * sin(t));
+						if (x0 >= 0 && y0 >= 0 && x0 < cols && y0 < rows){
+							hspace3D[x0][y0][r] += 1; // plus one vote
+						}
 					}
 				}
-			// }
+			 }
 		}
 	}
 
-	// make into 2d to display 
-	cv::Mat hspace2d;
-	hspace2d.create(Size(rows, cols), mag.type());
-	//hspace2d = Mat(rows, cols, CV_64FC1, double(0));
-	// displaying hough space image
-	for (int r = 0 ; r <= maxR; r++){
-      		for (int x = 0; x < rows; x++){
-            		for (int y = 0; y < cols; y++){
-                		hspace2d.at<double>(x,y) += hspace3D[x][y][r];
-			}
-        	}
-    	}
-	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
-	imwrite("hspace.jpg", hspace2d);
-
+	// scale shit
+	cout << "dafsdghh" << endl;
 
 
 	// 2. in parameter space, any element H(xo, yo, r) > Th
 	// represents a circle with radius r located at (xo, yo) in the image
-
-	for (int xo=0; xo< rows; xo++) {
-		for (int yo=0; yo< cols; yo++) {
-			for (int radius=0; radius< maxR; radius++) {
+	for (int xo=0; xo< cols; xo++) {
+		for (int yo=0; yo< rows; yo++) {
+			for (int radius=minR; radius< maxR; radius++) {
 				// if it is a peak in the hough space then a circle is detected
 				if (hspace3D[xo][yo][radius] > peak) { // this is Th
 					// save detected circles in a vector
-                    darts.push_back(Vec3i(xo, yo, radius));
+                 			 darts.push_back(Vec3i(xo, yo, radius));
 				}
 			}
 		}
 	}
+	cv::Mat hspace2d;
+	hspace2d.create(mag.size(), mag.type()); // is prob wrong
+
+	// displaying hough space image
+        for (int x = 0; x < cols; x++){
+            for (int y = 0; y < rows; y++){
+		for (int r = 0; r < maxR; r++){
+                	hspace2d.at<double>(y,x) += hspace3D[x][y][r];
+		}
+        }
+    }
+	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
+	imwrite("hspace.jpg", hspace2d);
+
 	// openCV library func:
 	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
 
@@ -339,33 +344,6 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 }
 
 
-
-void houghLineDetection(){
-	int slope, yint;
-	int hough[23][23];
-	// mat vs array of ints vs vector
-	// make this matrix 0s
-
-	// try different values of theta since we have x and y
-	// rho is unknown
-
-	// put values of rho and theta into said matrix
-
-	// the perpendicular from the origin to any point on that line will always be same
-	// and thus have the same rho and theta --> so they get more votes
-
-	// general algorithm
-	// for all x
-	// 	for all y
-	// 			if edge point at (x,y)
-	// 				for all theta
-	// 					rho = x*cos theta + y*sin theta
-	// 					H<theta, rho> += 1
-	// 				end
-	// 			end
-	// 	end
-	// end
-}
 
 
 
