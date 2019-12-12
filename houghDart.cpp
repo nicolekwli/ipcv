@@ -484,7 +484,10 @@ void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int mi
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
+		cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
 	}
+
+
 
 	// display the vector
 	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
