@@ -21,8 +21,8 @@ using namespace cv;
 /** Function Headers */
 void sobelOpenCV( Mat &input, Mat &sobel );
 void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobel);
-void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY);
 
+void scaling(int *** hough, int maxR, int cols, int rows);
 void detectAndDisplay( Mat frame );
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
@@ -69,7 +69,7 @@ int main( int argc, const char** argv ){
 			- min radius
 	*/
 	//hough(frame, mag, dir, 180, 190, 40, 5);
-	hough(frame, thresh, dir, 180,15,40,15);
+	hough(frame, thresh, dir, 180,210,40,30);
 	// 4. Save Result Image
 	imwrite( "HOUGH.jpg", frame );
 
@@ -305,10 +305,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			 }
 		}
 	}
-
-	// scale shit
-	cout << "dafsdghh" << endl;
-
+	scaling(hspace3D, maxR, cols, rows);
 
 	// 2. in parameter space, any element H(xo, yo, r) > Th
 	// represents a circle with radius r located at (xo, yo) in the image
@@ -343,6 +340,32 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	return darts; // returns the vector of all detected darts
 }
 
+
+
+
+void scaling( int *** hough, int maxR, int cols, int rows ){
+	int max = 0;
+	// find the max
+	for (int x=0; x< cols; x++) {
+		for(int y=0; y< rows; y++){
+			for (int r=0; r< maxR; r++){
+				if (hough[x][y][r] > max) {
+					max = hough[x][y][r];
+				}	
+			}
+		}
+	}
+	// scale the thing
+	for (int x=0; x< cols; x++) {
+		for(int y=0; y< rows; y++){
+			for (int r=0; r< maxR; r++){
+				hough[x][y][r] = ( hough[x][y][r] * 255 ) / max ;	
+			}
+		}
+	}
+
+
+}
 
 
 
