@@ -125,6 +125,9 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 	// direction of gradient
 	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
 	direction(sobe, scaledX, scaledY, dir);
+	imwrite( "dir.jpg", dir );
+
+
 	
 			// convert sobel to image format
 			// may not need this if we're already scaling the image
@@ -227,9 +230,12 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 	dir.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			dir.at<uchar>(i,j) = atan( scaledY.at<double>(i,j) / scaledX.at<double>(i,j));
+			dir.at<uchar>(i,j) = atan( scaledY.at<float>(i,j) / scaledX.at<float>(i,j));
 		}
 	}
+
+	cout << "KY is = " << endl << " " << dir << endl << endl;
+
 }
 
 
@@ -253,41 +259,122 @@ void thresholding( Mat &mag, Mat &thresh){
 }
 
 
-
+/*
 // ---> min/max radius and distance between circle centres
 	// calculates 3D hough space (xo, yo, r) from threshold g. mag. image and gradient orientation image
 	// decide size (no of cells) in hough space
 	// display hough space for each image
-	// --> create a 2D image
-	// ---> take log of the image to make values more descriptive
+// --> create a 2D image
+// ---> take log of the image to make values more descriptive
+// threshold the hough space and display the set of found circles on og images 
+void hough(){
 
-	// threshold the hough space and display the set of found circles on og images 
-void hough( Mat &mag, Mat &dir, int peak, Mat &hresult){
-	// eq of circle: (x-a)^2 + (y-b)^2 = r^2
-	int a = mag.rows;
-	int b = mag.cols;
-	int r = sqrt(pow(rows, 2) + pow(cols, 2));
+	houghCircleDetection( Mat &image, Mat &mag, Mat &dir, int peak, Mat &hresult, int maxR, int minR);
+
+}
+
+
+
+// eq of circle: (x-a)^2 + (y-b)^2 = r^2
+void houghCircleDetection( Mat &mag, Mat &dir, int peak, Mat &hresult, int maxR, int minR){
 
 	// need to know if array is better or vector?
-	int houghSpace[5][5][5];
+	int hspace[5][5][5];
 	// initialize w/ 0s
-	
 
-	std::vector<Vec3f> output;
+
+	std::vector<Vec3f> output; //-> why
+
+
+	// step size -> can have step size
 
 	// 1. for any pixel satisfying |G()| > Ts, increment all elements satisying the following:
 	//		for all r, xo = x +- rcos(dir)
 	//				   yo = y +- rsin(dir)
 	//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
 
+	// x and y is the center of the circle
+	for (int x=0; x< number of rows in image, x++){
+		for (int y=0; y< nuber of cols in image; y++){
+			
+			// we do this since we only care about edges
+			if (mag.at<>(x,y) > thresh ){
+
+				// for all radii from min to max possible r
+				for (int r = minR; r < maxR; r++){
+					// for all theta
+					for (int theta = 0; theta<360; theta++) {
+						
+						int x0 = x – r * cos(t * PI / 180);
+						int y0 = y – r * sin(t * PI / 180);
+						hspace[x][y][r] +=1;
+
+					}
+				}
+			}
+
+		}
+	}
+
+	
+	lecture notes:
+		- how big is the hough space? 
+		- need as many params as exactly necess to exactly describe the shape
+			-> for ellipses, need x dir, y dir and a and b and then either angle of axes or...?
+			-> circle is 3
+		- the more complex the shape gets the more params there are
+		- so generic hough transform
+	
+
 	// 2. in parameter space, any element H(xo, yo, r) > Th
 	//		represents a circle with radius r located at (xo, yo) in the image
 
+	// ---> out of memory errors!!
+	for (int xo=0; xo< ; xo++) {
+		for (int yo=0; yo< ; yo++) {
+			for (int radius=0; radius< ; radius++) {
+				// if it is a peak in the hough space then a circle is detected
+				if (H[xo][yo][radius] > peak) {
+					// draw a circle with radius r
+					cv::circle(image, Point(xo, yo), radius, Scalar( 0, 0, 255 ), 2);
+				}
+			}
+		}
+	}
 
 	// openCV library func:
 	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
 
 }
+
+
+void houghLineDetection(){
+	int slope, yint;
+	int hough[23][23];
+	// mat vs array of ints vs vector
+	// make this matrix 0s
+
+	// try different values of theta since we have x and y
+	// rho is unknown
+
+	// put values of rho and theta into said matrix
+
+	// the perpendicular from the origin to any point on that line will always be same
+	// and thus have the same rho and theta --> so they get more votes
+
+	// general algorithm
+	// for all x
+	// 	for all y
+	// 			if edge point at (x,y)
+	// 				for all theta
+	// 					rho = x*cos theta + y*sin theta
+	// 					H<theta, rho> += 1
+	// 				end
+	// 			end
+	// 	end
+	// end
+}
+*/
 
 
 
