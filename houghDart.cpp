@@ -67,35 +67,6 @@ int main( int argc, const char** argv ){
 	getGroundTruthData();
 	drawGroundTruth(argv[1], frame);
 	cout << " -> ground truth read and drawn" << endl;
-
-				// // do the things
-				// // violaJones( argv[1], frame);
-				// // cout << "viola jones done" << endl;
-
-				// // declaring all the matrices here
-				// cv::Mat dx, dy, mag, dir, thresh;
-
-				// //sobelOpenCV(frame, so);
-				// sobelDetection(frame_gray, dx, dy, mag, dir, sobe);
-
-				// // thresholding the gradient magnitude image
-				// // DO NOT need to pass this into hough()
-				// thresholding(mag, thresh);
-
-				// /*	params:
-				// 	- the original image so we can draw circles
-				// 	- magnitude matrix
-				// 	- gradient direction matrix
-				// 	- threshold that is used in the thresholding function 
-				// 	- peak -> no. of votes greater than which we consider that point the centre of a circle
-				// 	- max radius
-				// 	- min radius
-				// */
-				// hough(frame, thresh, dir, 180, 210, 40, 30);
-
-				// // 4. Save Result Image
-				// imwrite( "HOUGH.jpg", frame );
-
 	
 	voilaAndHough(argv[1], frame, frame_gray);
 
@@ -622,7 +593,7 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	// do hough
 	sobelDetection(frame_gray, dx, dy, mag, dir);
 	thresholding(mag, thresh);
-	Hresult = hough(frame, thresh, dir, 180, 210, 40, 30);
+	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
 	cout << " -> hough detection done" << endl;
 
 	// combine the results
