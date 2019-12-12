@@ -263,28 +263,45 @@ void thresholding( Mat &mag, Mat &thresh){
 
 void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 	vector<cv::Vec3i> detectedDarts;
+	cout << "in hough" <<endl;
+
 	// houghLineDetection();
 	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
+	cout<< "end of hough " << endl;
 	// draw a circle with radius r
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 0, 0, 255 ), 2);
 	}
 
+	imwrite("houghDetected.jpg", frame);
+
 	// view the vector
 	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
+	cout<<endl;
 }
 
 
 
 // eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
-	// should this be an array or vector
+
+	cout<< "in hough circ " <<endl;
+
 	int rows = mag.rows, cols = mag.cols;
-	int hspace[rows][cols][maxR];
 	int thresh = 250; // this is a pixel value (ie Ts)
 	vector<cv::Vec3i> darts; //struct that holds 3 ints
+
+	int ***hspace3D;
+	//  Allocate 3D Array
+	hspace3D = new int**[rows];
+	for(int i = 0; i < rows; i++){
+		hspace3D[i] = new int*[cols];
+		for(int j = 0; j < cols; j++){
+			hspace3D[i][j] = new int[maxR];
+      	}
+	}
 
 	// step size -> can have step size if we want to make hough calcualtions faster
 	// can be a subtask 4 thing?
@@ -293,10 +310,14 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 	for(int x=0; x< rows; x++){
 		for(int y=0; y< cols; y++){
 			for(int r = minR; r < maxR; r++){
-				hspace[x][y][r] = 0;
+				hspace3D[x][y][r] = 0;
 			}
 		}
 	}
+
+
+	//cout << "KY is = " << endl << " " << mag << endl << endl;
+
 
 	int x0pos, x0neg, y0pos, y0neg;
 		// 1. for any pixel satisfying |Mag(x,y)| > Ts, increment all elements satisying the following:
@@ -319,13 +340,13 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 					x0 = x - (int)(r * cos(dir.at<double>(y, x)));
 					y0 = y - (int)(r * sin(dir.at<double>(y, x)));
 					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
-						hspace[x0][y0][r] += 1; // plus one vote
+						hspace3D[x0][y0][r] += 1; // plus one vote
 					}
 					// +ve
 					x0 = x + (int)(r * cos(dir.at<double>(y, x)));
 					y0 = y + (int)(r * sin(dir.at<double>(y, x)));
 					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
-						hspace[x0][y0][r] += 1; // plus one vote
+						hspace3D[x0][y0][r] += 1; // plus one vote
 					}
 				}
 			}
@@ -340,7 +361,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 		for (int yo=0; yo< cols; yo++) {
 			for (int radius=0; radius< maxR; radius++) {
 				// if it is a peak in the hough space then a circle is detected
-				if (hspace[xo][yo][radius] > peak) { // this is Th
+				if (hspace3D[xo][yo][radius] > peak) { // this is Th
 					// save detected circles in a vector
                     darts.push_back(Vec3i(xo, yo, radius));
 				}
@@ -354,7 +375,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 	for (int r = minR; r <= maxR; r++){
         for (int x = 0; x < mag.rows; x++){
             for (int y = 0; y < mag.cols; y++){
-                hspace2d.at<uchar>(y,x) += hspace[x][y][r];
+                hspace2d.at<uchar>(y,x) += hspace3D[x][y][r];
 			}
         }
     }
