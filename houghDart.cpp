@@ -19,21 +19,21 @@ using namespace cv;
 
 
 /** Function Headers */
-void sobelOpenCV( Mat &input, Mat &sobel );
-void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobel);
-
-void scaling(int *** hough, int maxR, int cols, int rows);
 void detectAndDisplay( Mat frame );
+
+void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobel);
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
+
 void thresholding(Mat &input, Mat &thresholded);
 void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
+void scaling(int *** hough, int maxR, int cols, int rows);
 
 
 /** Global variables */
-String cascade_name = "frontalface.xml";
+String cascade_name = "/dartcascade/cascade.xml";
 CascadeClassifier cascade;
 
 
@@ -68,8 +68,7 @@ int main( int argc, const char** argv ){
 			- max radius
 			- min radius
 	*/
-	//hough(frame, mag, dir, 180, 190, 40, 5);
-	hough(frame, thresh, dir, 180,210,40,30);
+	hough(frame, thresh, dir, 180, 210, 40, 30);
 	// 4. Save Result Image
 	imwrite( "HOUGH.jpg", frame );
 
@@ -79,34 +78,6 @@ int main( int argc, const char** argv ){
 
 // ----------------------------------------------------------------------------------------------------
 // ---------- SOBEL THINGS --------------------------------------------------
-/*
-*	 this is sobel's using openCVs library
-*/
-void sobelOpenCV( Mat &input, Mat &sobel ){
-  sobel = cv::Mat (input.rows, input.cols, CV_32FC1);
-
-  /// Generate grad_x and grad_y
-  Mat grad_x, grad_y;
-  Mat abs_grad_x, abs_grad_y;
-  int scale = 1;
-  int delta = 0;
-  int ddepth = CV_16S;
-
-  /// Gradient X
-  Sobel( input, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT );
-  convertScaleAbs( grad_x, abs_grad_x );
-  	// imwrite( "sobelX.jpg", abs_grad_x );
-
-  /// Gradient Y
-  Sobel( input, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
-  convertScaleAbs( grad_y, abs_grad_y );
-	// imwrite( "sobelY.jpg", abs_grad_y );
-
-  /// Total Gradient (approximate)
-  addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, sobel );
-}
-
-
 /*
 *		our implementation of sobel !!
 */
@@ -219,6 +190,7 @@ void thresholding( Mat &mag, Mat &thresh){
 	imwrite("thresh.jpg", thresh);
 }
 
+
 // mag, dir, hspace
 // dont need frame
 // 190,40,5
@@ -230,7 +202,6 @@ void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int mi
 		maxR = frame.rows / 2;
 	}
 	else maxR = frame.cols / 2;
-	// houghLineDetection();
 	
 	detectedDarts = houghCircleDetection( mag, dir, thresh, peak, maxR, minR);
 
@@ -240,7 +211,7 @@ void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int mi
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
 	}
 
-	// view the vector
+	// display the vector
 	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
 	cout<<endl;
 }
@@ -248,7 +219,6 @@ void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int mi
 
 
 // eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
-
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
 	vector<cv::Vec3i> darts; //struct that holds 3 ints
 	int x0pos, x0neg, y0pos, y0neg;
@@ -283,7 +253,6 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	// x and y is the center of a circle
 	for (int x=0; x< cols; x++){
 		for (int y=0; y< rows; y++){
-			// if (mag.at<double>(y,x) > 0) cout << mag.at<double>(y,x) << endl;
 			  if (mag.at<double>(y,x) == 255 ){
 				for (int r = minR; r < maxR; r++){
 					// hough based on gradient direction given by dir matrix
@@ -305,6 +274,8 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			 }
 		}
 	}
+
+	// scaling the hough votes so its easier to find peak
 	scaling(hspace3D, maxR, cols, rows);
 
 	// 2. in parameter space, any element H(xo, yo, r) > Th
@@ -315,20 +286,21 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 				// if it is a peak in the hough space then a circle is detected
 				if (hspace3D[xo][yo][radius] > peak) { // this is Th
 					// save detected circles in a vector
-                 			 darts.push_back(Vec3i(xo, yo, radius));
+					darts.push_back(Vec3i(xo, yo, radius));
 				}
 			}
 		}
 	}
+
 	cv::Mat hspace2d;
-	hspace2d.create(mag.size(), mag.type()); // is prob wrong
+	hspace2d.create(mag.size(), mag.type());
 
 	// displaying hough space image
-        for (int x = 0; x < cols; x++){
-            for (int y = 0; y < rows; y++){
-		for (int r = 0; r < maxR; r++){
-                	hspace2d.at<double>(y,x) += hspace3D[x][y][r];
-		}
+	for (int x = 0; x < cols; x++){
+		for (int y = 0; y < rows; y++){
+			for (int r = 0; r < maxR; r++){
+				hspace2d.at<double>(y,x) += hspace3D[x][y][r];
+			}
         }
     }
 	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
@@ -346,25 +318,23 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 void scaling( int *** hough, int maxR, int cols, int rows ){
 	int max = 0;
 	// find the max
-	for (int x=0; x< cols; x++) {
+	for (int x=0; x< cols; x++){
 		for(int y=0; y< rows; y++){
 			for (int r=0; r< maxR; r++){
-				if (hough[x][y][r] > max) {
+				if (hough[x][y][r] > max){
 					max = hough[x][y][r];
 				}	
 			}
 		}
 	}
 	// scale the thing
-	for (int x=0; x< cols; x++) {
+	for (int x=0; x< cols; x++){
 		for(int y=0; y< rows; y++){
 			for (int r=0; r< maxR; r++){
 				hough[x][y][r] = ( hough[x][y][r] * 255 ) / max ;	
 			}
 		}
 	}
-
-
 }
 
 
