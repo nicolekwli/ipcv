@@ -179,11 +179,7 @@ void getGroundTruthData(){
 	
 	// gets first line but we ignore it since its a comment
 	std::getline(f, line);
-		
-	// while(!f.eof()){
-	while(std::getline(f, line)){
-		// get a line
-		// std::getline(f, line);
+			while(std::getline(f, line)){
 		// create a temp thing
 		std::stringstream temp(line);
 
@@ -196,12 +192,6 @@ void getGroundTruthData(){
 		if (oldIndex != index){
 			col = 0;
 		}
-		// dealing with images with more than one face/dart by adding as a new column
-		/*int col = 0;
-		if(gt[index][col].x != 0){
-			col++;
-		}
-		else col = 0;*/
 
 		// extracting each value for x y w h as integer
 		getline(temp, T, ' ');
@@ -220,9 +210,7 @@ void getGroundTruthData(){
 		col++;
 		oldIndex = index;
 	}
-
 	f.close();
-	
 }
 
 
@@ -247,10 +235,8 @@ void drawGroundTruth(string fname, Mat frame){
 		if (gt[index][col].x == 0){
 			break;
 		}
-		
 		col++;
-		std::cout << gt[index][col].x << std::endl;
-		
+		std::cout << gt[index][col].x << std::endl;	
 	}
 }
 
@@ -284,8 +270,6 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	int gw = gt[index][col].w;
 	int gh = gt[index][col].h;
 
-	// might need to normalise these !!!!!!!!!!!!!!!!!!
-
 	// - area of each rect is width x height
 	p_area = pw * ph;
 	// g_area = gt[index][col].w * gt[index][col].h;
@@ -299,7 +283,6 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	iy1 = min(gy + gh, py + ph);
 	iy2 = max(gy, py);
 
-
 	// - calc the area of intersection
 	if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 1)){
 		intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);		
@@ -310,8 +293,6 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	
 	// iou of the box
 	iou = abs(intersect_area) / abs(union_area);
-
-	// return iou
 	return iou;
 }
 
@@ -362,7 +343,6 @@ float calcF1score(float iou[], int index, int noOfDetected){
 			FN = FN + 1;}
 		}	
 	}
-
 	// ACTUAL F1	
 	float precision = (float) TP / (TP + FP);
 	float recall = (float) TP / (TP + FN);
