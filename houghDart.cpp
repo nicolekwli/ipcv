@@ -20,90 +20,92 @@ using namespace cv;
 
 
 /** Function Headers */
-//void detectAndDisplay( Mat frame );
-
 // THESE ARE FROM FACE.CPP
-void detectAndDisplay( string fname, Mat frame );
 void getGroundTruthData();
 void drawGroundTruth( string fname, Mat frame);
 float calcIOU(string fname, int px, int py, int pw, int ph, int col);
 float calcTPR(float iou[], int index);
 float calcF1score(float iou[], int index, int noOfDetected);
+void doCalc( string fname, Mat frame, std::vector<Rect> dart );
 
-void violaJones(string fname, Mat frame);
-void doCalc( string fname, Mat frame, std::vector<Rect> faces );
+vector<Rect> violaJones(string fname, Mat frame);
 
-void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobel);
+void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir);
 void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
 void thresholding(Mat &input, Mat &thresholded);
-void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
+
+vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR);
 void scaling(int *** hough, int maxR, int cols, int rows);
+
+void voilaAndHough(string name, Mat frame, Mat frame_gray );
+/**************************/
+
 
 /* struct that contains data OF an IMAge to draw bb */
 struct datastruct {
 	int x, y, w, h;
 };
 
+
 /** Global variables */
 const std::string GTFILENAME = "gt_darts_data.txt";
-String cascade_name = "/dartcascade/cascade.xml";
+String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
 datastruct gt[16][16];
-int no_of_face[16] = {1,1,1,1,1,1,1,1,2,1,3,1,1,1,2,1};
+int no_of_darts[16] = {1,1,1,1,1,1,1,1,2,1,3,1,1,1,2,1};
 
 
 /** @function main */
 int main( int argc, const char** argv ){
-	// 1. Read Input Image
+	// Read Input Image
 	cv::Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 	cv::Mat frame_gray = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
 
 	getGroundTruthData();
 	drawGroundTruth(argv[1], frame);
-	cout << "GT Drawn" << endl;
+	cout << " -> ground truth read and drawn" << endl;
 
-	// 2. Load the Strong Classifier in a structure called `Cascade'
-	// if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
+				// // do the things
+				// // violaJones( argv[1], frame);
+				// // cout << "viola jones done" << endl;
 
-	// 3. Detect Faces and Display Result
-	// detectAndDisplay( frame );
+				// // declaring all the matrices here
+				// cv::Mat dx, dy, mag, dir, thresh;
 
-	// do the things
-	// violaJones( argv[1], frame);
-	// cout << "viola jones right" << endl;
+				// //sobelOpenCV(frame, so);
+				// sobelDetection(frame_gray, dx, dy, mag, dir, sobe);
 
-	// declaring all the matrices here
-	cv::Mat dx, dy, mag, dir, thresh, gblur, sobe, so;
+				// // thresholding the gradient magnitude image
+				// // DO NOT need to pass this into hough()
+				// thresholding(mag, thresh);
 
-	//sobelOpenCV(frame, so);
-	sobelDetection(frame_gray, dx, dy, mag, dir, sobe);
+				// /*	params:
+				// 	- the original image so we can draw circles
+				// 	- magnitude matrix
+				// 	- gradient direction matrix
+				// 	- threshold that is used in the thresholding function 
+				// 	- peak -> no. of votes greater than which we consider that point the centre of a circle
+				// 	- max radius
+				// 	- min radius
+				// */
+				// hough(frame, thresh, dir, 180, 210, 40, 30);
 
-	// thresholding the gradient magnitude image
-	// DO NOT need to pass this into hough()
-	thresholding(mag, thresh);
+				// // 4. Save Result Image
+				// imwrite( "HOUGH.jpg", frame );
 
-	/*	params:
-			- the original image so we can draw circles
-			- magnitude matrix
-			- gradient direction matrix
-			- threshold that is used in the thresholding function 
-			- peak -> no. of votes greater than which we consider that point the centre of a circle
-			- max radius
-			- min radius
-	*/
-	hough(frame, thresh, dir, 180, 210, 40, 30);
-	// 4. Save Result Image
-	imwrite( "HOUGH.jpg", frame );
+	
+	voilaAndHough(argv[1], frame, frame_gray);
 
 	return 0;
 }
 
+// ----------------------------------------------------------------------------------------------------
+// ---------- Ground truth and friends  -------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
 void getGroundTruthData(){
-	std::cout << "in GT" << std::endl;
-	
 	string line;
 	int oldIndex = 99;
 	int index;
@@ -115,15 +117,13 @@ void getGroundTruthData(){
 	
 	// gets first line but we ignore it since its a comment
 	std::getline(f, line);
-			while(std::getline(f, line)){
+	while(std::getline(f, line)){
 		// create a temp thing
 		std::stringstream temp(line);
 
 		// extract first value which is the index from line
 		getline(temp, T, ' ');
 		index = stoi(T);
-
-		std::cout << index << std::endl;
     	
 		if (oldIndex != index){
 			col = 0;
@@ -142,7 +142,7 @@ void getGroundTruthData(){
 		if (index == 15){
 			break;
 		}
-		cout<< gt[index][col].x << " " << gt[index][col].y << " " <<gt[index][col].w << " "<<gt[index][col].w << endl;
+		//cout<< gt[index][col].x << " " << gt[index][col].y << " " <<gt[index][col].w << " "<<gt[index][col].w << endl;
 		col++;
 		oldIndex = index;
 	}
@@ -159,52 +159,21 @@ void drawGroundTruth(string fname, Mat frame){
 	if (fname[5] != dot){
 		index = stoi(to_string(index) + to_string(fname[5] - 48));
 	}
-	for (int i = 0 ; i < 15; i++) {
-		cout<< gt[index][i].x << endl;
-	}
+	// for (int i = 0 ; i < 15; i++) {
+	// 	cout<< gt[index][i].x << endl;
+	// }
 	// draw rect
 	while(gt[index][col].x != 0){
-		std::cout << col << std::endl;		
-
 		rectangle(frame, Point(gt[index][col].x, gt[index][col].y), Point(gt[index][col].x + gt[index][col].w, gt[index][col].y + gt[index][col].h), Scalar( 0, 0, 255 ), 2);
 		if (gt[index][col].x == 0){
 			break;
 		}
 		col++;
-		std::cout << gt[index][col].x << std::endl;	
 	}
 }
 
 
-void violaJones(string fname, Mat frame) {
-	std::vector<Rect> faces;
-	Mat frame_gray;
-
-	// 1. Prepare Image by turning it into Grayscale and 
-	//normalising lighting
-	cvtColor( frame, frame_gray, CV_BGR2GRAY );
-	equalizeHist( frame_gray, frame_gray );
-
-	// 2. Perform Viola-Jones Object Detection 
-	cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
-
-	// 3. Print number of Faces found
-	std::cout << faces.size() << std::endl;
-
-	// 4. Draw box around faces found
-	/*for( int i = 0; i < faces.size(); i++ ){
-		// print details of faces
-        	std::cout << "data of detected face #"<< i+1 << " is: " ;
-		cout<< faces[i].x << " " << faces[i].y << " " << faces[i].width << " " << faces[i].height << std::endl;
-
-		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
-
-	}*/
-	doCalc(fname, frame,faces);
-}
-
 void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
-
 	int index = fname[4]-48;
 	char dot = '.';
 	if (fname[5] != dot){
@@ -212,29 +181,25 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 	}
 	// need variable to keep track of which one has been included
 	// lets use a new array of with size of the number of actualy faces
-	int facesMatched[no_of_face[index]]; 
+	int facesMatched[no_of_darts[index]]; 
 	
 	// NEED A LIST OF IOU TO PASS INTO TPR
-	float IOUs[no_of_face[index]];
+	float IOUs[no_of_darts[index]];
 
-	cout << "INDEX" << endl;
-	std::cout << index << std::endl;
+	cout << "INDEX" << index << std::endl;
 	// for each ground truth face we perform IOU with all detected faces
-	for (int j = 0; j < no_of_face[index]; j++){
+	for (int j = 0; j < no_of_darts[index]; j++){
 		float IOU = 0;
 		int IOUIndex;
 		float tempIOU;
 
-		// for each detected face 
-		// store the largest one
+		// for each detected face store the largest one
 		for (int k = 0; k < faces.size(); k++){
 			// perform IOU and compare to previous and store the larger one	
-			
 			tempIOU = calcIOU(fname, faces[k].x, faces[k].y, faces[k].width, faces[k].height, j);
 			// std::cout << "temp: " << tempIOU << std::endl;
 			// if ((IOU < tempIOU) && (tempIOU < 1)){
 			 if (IOU < tempIOU){
-
 				if (j == 0){
 					IOU = tempIOU;
 				}
@@ -314,29 +279,27 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	return iou;
 }
 
-// True P Rate is the fraction of successfully detected faces out of all valid faces in an image
 float calcTPR(float iou[], int index){
 	int TP = 0;
-
 	// for each IOU value
-	for (int i = 0 ; i < no_of_face[index]; i++){
+	for (int i = 0 ; i < no_of_darts[index]; i++){
 		if (iou[i] >= 0.5 ){
 			// then it is a true positivei
 			TP = TP + 1;
 		}
 	}
-	std::cout << TP << std::endl;
-	std::cout << no_of_face[index] << std::endl;
-	float tpr = (float) TP / no_of_face[index];
-	std::cout << tpr << std::endl;
+	// std::cout << TP << std::endl;
+	// std::cout << no_of_darts[index] << std::endl;
+	float tpr = (float) TP / no_of_darts[index];
+	// std::cout << tpr << std::endl;
 	return tpr;
 }
 
 float calcF1score(float iou[], int index, int noOfDetected){
 	int TP, FN = 0;
-	int FP = noOfDetected - no_of_face[index];
-	cout << "index" << index << endl;
-	for (int i = 0 ; i < no_of_face[index]; i++){
+	int FP = noOfDetected - no_of_darts[index];
+	//cout << "index" << index << endl;
+	for (int i = 0 ; i < no_of_darts[index]; i++){
 		if (iou[i] >= 0.5 ){
 			// then it is a true positive
 			TP = TP + 1;
@@ -351,12 +314,11 @@ float calcF1score(float iou[], int index, int noOfDetected){
 	return 2 * ((precision * recall)/(precision + recall));
 }
 
+
 // ----------------------------------------------------------------------------------------------------
-// ---------- SOBEL THINGS --------------------------------------------------
-/*
-*		our implementation of sobel !!
-*/
-void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe){
+// ---------- SOBEL EDGE DETECTION  -------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
+void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir){
 	// Compute image containing derivative in x direction and y direction
 	ddx(input, dx, dy);
 	magnitude (input, dx, dy, mag);
@@ -446,8 +408,8 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 
 
 // ----------------------------------------------------------------------------------------------------
-// ---------- HOUGH THINGS --------------------------------------------------
-
+// ---------- HOUGH TRANSFORM -------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
 // -> to get set of pixels with trongest g. magnitude to be considered for circle detection
 void thresholding( Mat &mag, Mat &thresh){
 	thresh.create(mag.size(), mag.type());
@@ -471,8 +433,10 @@ void thresholding( Mat &mag, Mat &thresh){
 // 190,40,5
 // maxR is frame.rows/2
 
-void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
+vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
+	cout<< " -> ... hough in progress " <<endl;
 	vector<cv::Vec3i> detectedDarts;
+	vector<Rect> detectedDartBoxes;
 	if (frame.rows < frame.cols) {
 		maxR = frame.rows / 2;
 	}
@@ -481,30 +445,30 @@ void hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int mi
 	detectedDarts = houghCircleDetection( mag, dir, thresh, peak, maxR, minR);
 
 	// draw a circle with radius r
+	// also create vector of all detected rects
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
+		detectedDartBoxes.push_back(Rect(temp[0]-temp[2], temp[1]-temp[2], temp[0]+temp[2], temp[1] + temp[2]));
 		cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
 	}
 
-
-
 	// display the vector
-	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
-	cout<<endl;
+	// std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
+	// cout<<endl;
+
+	std::cout << " -> no of darts detected by Hough: " << detectedDartBoxes.size() << std::endl;
+
+	return detectedDartBoxes;
 }
 
 
-
-// eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
+// describe me
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
 	vector<cv::Vec3i> darts; //struct that holds 3 ints
 	int x0pos, x0neg, y0pos, y0neg;
 	int rows = mag.rows;
 	int cols = mag.cols;
-
-	// What does this value need to be
-	// int thresh = 250; // this is a pixel value (ie Ts)
 
 	int ***hspace3D;
 	//  Allocate 3D Array
@@ -516,8 +480,6 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
       		}
 	}
 
-	// step size -> can have step size if we want to make hough calcualtions faster
-	// can be a subtask 4 thing?
 	// initialize 3D array w 0s
 	for(int x=0; x< cols; x++){
 		for(int y=0; y< rows; y++){
@@ -528,7 +490,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	}
 
 
-	// x and y is the center of a circle
+	// the actual calculation & casting votes
 	for (int x=0; x< cols; x++){
 		for (int y=0; y< rows; y++){
 			  if (mag.at<double>(y,x) == 255 ){
@@ -556,13 +518,12 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	// scaling the hough votes so its easier to find peak
 	scaling(hspace3D, maxR, cols, rows);
 
-	// 2. in parameter space, any element H(xo, yo, r) > Th
-	// represents a circle with radius r located at (xo, yo) in the image
+	// using peak threshold given to get circles detected
 	for (int xo=0; xo< cols; xo++) {
 		for (int yo=0; yo< rows; yo++) {
 			for (int radius=minR; radius< maxR; radius++) {
 				// if it is a peak in the hough space then a circle is detected
-				if (hspace3D[xo][yo][radius] > peak) { // this is Th
+				if (hspace3D[xo][yo][radius] > peak) {
 					// save detected circles in a vector
 					darts.push_back(Vec3i(xo, yo, radius));
 				}
@@ -573,7 +534,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	cv::Mat hspace2d;
 	hspace2d.create(mag.size(), mag.type());
 
-	// displaying hough space image
+	// displaying hough space image => convert to 2D
 	for (int x = 0; x < cols; x++){
 		for (int y = 0; y < rows; y++){
 			for (int r = 0; r < maxR; r++){
@@ -581,6 +542,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			}
         }
     }
+
 	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
 	imwrite("hspace.jpg", hspace2d);
 
@@ -591,8 +553,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 }
 
 
-
-
+// describe this
 void scaling( int *** hough, int maxR, int cols, int rows ){
 	int max = 0;
 	// find the max
@@ -617,32 +578,61 @@ void scaling( int *** hough, int maxR, int cols, int rows ){
 
 
 
+// ----------------------------------------------------------------------------------------------------
+// ---------- INTEGRATION W VIOLA JONES ---------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
+vector<Rect> violaJones( string fname, Mat frame ) {
+	std::vector<Rect> dart;
+	Mat frame_gray, result;
 
-/** @function detectAndDisplay **/
-// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES
-void detectAndDisplay( Mat frame ){
-	// std::vector<Rect> faces;
+	// Load the Strong Classifier in a structure called `Cascade'
+	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); exit(0); };
 
-	Mat frame_gray;
-	// Mat result;
-
-	// 1. Prepare Image by turning it into Grayscale and normalising lighting
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
 	equalizeHist( frame_gray, frame_gray );
 
-	// 2. Perform Viola-Jones Object Detection
-	// cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
-	// sobel (frame_gray, result);
+	// Perform Viola-Jones Object Detection
+	cascade.detectMultiScale( frame_gray, dart, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
+	
+	std::cout << " -> no of darts detected by viola-jones: " << dart.size() << std::endl;
 
-	// imwrite("sobel.jpg", result);
-       // 3. Print number of Faces found
-	// std::cout << faces.size() << std::endl;
+	for( int i = 0; i < dart.size(); i++ ){
+		rectangle(frame, Point(dart[i].x, dart[i].y), Point(dart[i].x + dart[i].width, dart[i].y + dart[i].height), Scalar( 255, 192, 203 ), 2);
+	}
 
-       // 4. Draw box around faces found
-	/* for( int i = 0; i < faces.size(); i++ ){
-		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
-	}*/
+	// ANALYSIS CALC
+	//doCalc(fname, frame, dart);
 
+	return dart;
 }
 
+
+
+/*
+* 		Viola Jones + Hough transform 
+*/
+void voilaAndHough(string name, Mat frame, Mat frame_gray ){
+	cv::Mat dx, dy, mag, dir, thresh;
+	vector<Rect> VJresult, Hresult;
+
+	// do viola
+	VJresult = violaJones( name, frame);
+	cout << " -> viola jones done" << endl;
+
+	// do hough
+	sobelDetection(frame_gray, dx, dy, mag, dir);
+	thresholding(mag, thresh);
+	Hresult = hough(frame, thresh, dir, 180, 210, 40, 30);
+	cout << " -> hough detection done" << endl;
+
+	// combine the results
+	
+
+
+		// cout<< " -> filtering done " <<endl;
+
+	// 4. Save Result Image
+	imwrite( "VJH.jpg", frame );
+
+}
 
