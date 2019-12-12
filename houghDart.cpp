@@ -40,8 +40,8 @@ CascadeClassifier cascade;
 /** @function main */
 int main( int argc, const char** argv ){
 	// 1. Read Input Image
-	// cv::Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
-	cv::Mat frame = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+	cv::Mat frame_gray = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
 
 	// 2. Load the Strong Classifier in a structure called `Cascade'
 	if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
@@ -53,16 +53,16 @@ int main( int argc, const char** argv ){
 	cv::Mat dx, dy, mag, dir, thresh, gblur, sobe, so;
 
 	//sobelOpenCV(frame, so);
-	sobelDetection(frame, dx, dy, mag, dir, sobe);
+	sobelDetection(frame_gray, dx, dy, mag, dir, sobe);
 
 	// thresholding the gradient magnitude image
 	thresholding(mag, thresh);
 
-	// hough
-	hough(frame, mag, dir, 190, 40, 5);
+	// hough(colour image, mag matrix, dir matrix, peak threshold, max radius, min radius)
+	hough(frame, thresh, dir, 190, 40, 5);
 
 	// 4. Save Result Image
-	imwrite( "oursobel.jpg", mag );
+	imwrite( "HOUGH.jpg", frame );
 
 	return 0;
 }
@@ -100,44 +100,22 @@ void sobelOpenCV( Mat &input, Mat &sobel ){
 *		our implementation of sobel !!
 */
 void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe){
-
-	Mat abs_grad_x, abs_grad_y;
-	sobe.create(input.size(), input.type());
-	//mag.create(input.size(), input.type());
-
-	//GaussianBlur( input, input, Size(3,3), 0, 0, BORDER_DEFAULT ); -> makes it only slightly better
-
 	// Compute image containing derivative in x direction and y direction
 	ddx(input, dx, dy);
-	// using openCV's scaling function
-			// convertScaleAbs( dx, abs_grad_x );
-			// convertScaleAbs( dy, abs_grad_y );
-
-	// using our own scaling function
-	//cv::Mat scaledX, scaledY;
-	//scaling(dx, dy, scaledX, scaledY);
 	magnitude (input, dx, dy, mag);
 	direction (input, dx,dy,dir);	
-  	//addWeighted(scaledX, 0.5, scaledY, 0.5, 0, sobe ); // need this to combine result x and result y
+
 	normalize(dx, dx, 0, 255, 32, -1);
 	normalize(dy, dy, 0, 255, 32, -1);
 	imwrite( "ourSobelY.jpg", dy ); // image w deriv in y direction
 	imwrite( "ourSobelX.jpg", dx ); // image w deriv in x direction
 
 	// magnitude of gradient
-	//magnitude(sobe, scaledX, scaledY, mag);
 	normalize(mag, mag, 0, 255, 32, -1);
 	imwrite("MAGN.jpg", mag);
 
 	normalize(dir,dir,0,255,32,-1);
 	imwrite("DIRECTION.jpg", dir);
-	// direction of gradient
-	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
-			// convert sobel to image format
-			// may not need this if we're already scaling the image
-			// this was only needed when we used 32FC1 since that is not an image format
-			// whereas CV_8UC1 is an image format
-			// sobe.convertTo(sobe, CV_8UC1);
 }
 
 
@@ -149,10 +127,7 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 
 	// initialise kernels
 	cv::Mat kernel_X = (Mat_<float>(3,3) << -1, 0, 1, -2, 0, 2, -1, 0, 1);
-    		//cout << "KX is = " << endl << " " << kernel_X << endl << endl;
 	cv::Mat kernel_Y = (Mat_<float>(3,3) << -1, -2, -1, 0, 0, 0, 1, 2, 1);
-	// -1, -2, -1, 0, 0, 0, 1, 2, 1 ---> this is better somehow??
-    		// cout << "KY is = " << endl << " " << kernel_Y << endl << endl;
 
 	// create padded version of input to prevent border effects
 	int kernelXRad = (kernel_X.size[0] - 1) / 2;
@@ -191,34 +166,7 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY ) {
 }
 
 
-
-void scaling(Mat &dx, Mat &dy, Mat &scaledX, Mat &scaledY){
-	scaledX.create(dx.size(), dx.type()); 
-	scaledY.create(dy.size(), dy.type()); 
-
-	for (int i = 0; i < dx.rows; i++) {
-		for (int j = 0; j < dx.cols; j++) {
-			/*
-			so we have(HAD?idk where they went) -ve and +ve values
-			need to scale it from 0 to 255 
-			all -ve values are values <128 and +ve values are >128
-			*/
-
-			scaledX.at<uchar>(i,j) = 128 + dx.at<uchar>(i,j); 
-			scaledY.at<uchar>(i,j) = 128 + dy.at<uchar>(i,j);
-
-			// somehow i accidentally fixed things?
-			// the above logic is only meant for the case with -ve and +ve
-		}
-	}
-}
-
-
-
-// magnitude of gradient for sobel
-// pythagras theorem!!!!!!!!!!!!!!! SSS HH OOO KK
-// how big is the edge at this direction
-// scale it??
+// gradient magnitude
 void magnitude (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &mag) {
 	mag.create(input.size(), CV_64FC1);
 	for (int i = 0; i < input.rows; i++) {
@@ -229,7 +177,7 @@ void magnitude (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &mag
 }
 
 
-// the image of this LOOKS BAD dont be afraid
+// gradient direction
 void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir){
 	dir.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
@@ -240,7 +188,6 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 }
 
 
-
 // technically, code-wise, this works
 // but image doesnt look great? need a better thresh value
 // -> to get set of pixels with trongest g. magnitude to be considered for circle detection
@@ -248,11 +195,11 @@ void thresholding( Mat &mag, Mat &thresh){
 	thresh.create(mag.size(), mag.type());
 	for (int i = 0; i < mag.rows; i++) {
 		for (int j = 0; j < mag.cols; j++ ) {
-			if (mag.at<uchar>(i,j) > 190 ) {
-				thresh.at<uchar>(i,j) = 255;
+			if (mag.at<double>(i,j) > 150 ) {
+				thresh.at<double>(i,j) = 255;
 			}
 			else {
-				thresh.at<uchar>(i,j) = 0;
+				thresh.at<double>(i,j) = 0;
 			}
 		}
 	}
@@ -264,19 +211,14 @@ void thresholding( Mat &mag, Mat &thresh){
 
 void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 	vector<cv::Vec3i> detectedDarts;
-	cout << "in hough" <<endl;
-
 	// houghLineDetection();
 	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
-	cout<< "end of hough " << endl;
 	// draw a circle with radius r
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2]+maxR, Scalar( 255, 0, 0 ), 2);
 	}
-
-	imwrite("houghDetected.jpg", frame);
 
 	// view the vector
 	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
