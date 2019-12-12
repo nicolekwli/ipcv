@@ -208,9 +208,16 @@ void thresholding( Mat &mag, Mat &thresh){
 }
 
 
-
+// mag, dir, hspace
+// dont need frame
+// 190,40,5
+// maxR is frame.rows/2
 void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 	vector<cv::Vec3i> detectedDarts;
+	if (frame.rows < frame.cols) {
+		maxR = frame.rows / 2;
+	}
+	else maxR = frame.cols / 2;
 	// houghLineDetection();
 	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
@@ -230,7 +237,10 @@ void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
 // eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
 vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
 
-	int rows = mag.rows, cols = mag.cols;
+	int rows = mag.rows;
+	int cols = mag.cols;
+
+	// What does this value need to be
 	int thresh = 250; // this is a pixel value (ie Ts)
 	vector<cv::Vec3i> darts; //struct that holds 3 ints
 
@@ -241,26 +251,23 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 		hspace3D[i] = new int*[cols];
 		for(int j = 0; j < cols; j++){
 			hspace3D[i][j] = new int[maxR];
-      	}
+      		}
 	}
 
 	// step size -> can have step size if we want to make hough calcualtions faster
 	// can be a subtask 4 thing?
-
 	// initialize w 0s
 	for(int x=0; x< rows; x++){
 		for(int y=0; y< cols; y++){
-			for(int r = minR; r < maxR; r++){
+			for(int r = 0; r < maxR; r++){
 				hspace3D[x][y][r] = 0;
 			}
 		}
 	}
 
-
 	//cout << "KY is = " << endl << " " << mag << endl << endl;
 
-
-	int x0pos, x0neg, y0pos, y0neg;
+	//int x0pos, x0neg, y0pos, y0neg;
 		// 1. for any pixel satisfying |Mag(x,y)| > Ts, increment all elements satisying the following:
 		//		for all r, xo = x +- rcos(dir(x,y))
 		//				   yo = y +- rsin(dir(x,y))
@@ -271,32 +278,48 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 		for (int y=0; y< cols; y++){
 
 			// we do this since we only care about edges
-			if (mag.at<double>(x,y) > thresh ){
+			// if (mag.at<uchar>(x,y) > 255 ){
 
 				// for all radii from min to max possible r
-				for (int r = minR; r < maxR; r++){
+				for (int r = 0; r < maxR; r++){
 					// hough based on gradient direction given by dir matrix
 					int x0, y0;
 					// -ve
-					x0 = x - (int)(r * cos(dir.at<double>(y, x)));
-					y0 = y - (int)(r * sin(dir.at<double>(y, x)));
+					x0 = x - (int)(r * cos(dir.at<double>(x, y)));
+					y0 = y - (int)(r * sin(dir.at<double>(x, y)));
 					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
 						hspace3D[x0][y0][r] += 1; // plus one vote
 					}
 					// +ve
-					x0 = x + (int)(r * cos(dir.at<double>(y, x)));
-					y0 = y + (int)(r * sin(dir.at<double>(y, x)));
+					x0 = x + (int)(r * cos(dir.at<double>(x, y)));
+					y0 = y + (int)(r * sin(dir.at<double>(x, y)));
 					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
 						hspace3D[x0][y0][r] += 1; // plus one vote
 					}
 				}
-			}
-
+			// }
 		}
 	}
 
-		// 2. in parameter space, any element H(xo, yo, r) > Th
-		//		represents a circle with radius r located at (xo, yo) in the image
+	// make into 2d to display 
+	cv::Mat hspace2d;
+	hspace2d.create(Size(rows, cols), mag.type());
+	//hspace2d = Mat(rows, cols, CV_64FC1, double(0));
+	// displaying hough space image
+	for (int r = 0 ; r <= maxR; r++){
+      		for (int x = 0; x < rows; x++){
+            		for (int y = 0; y < cols; y++){
+                		hspace2d.at<double>(x,y) += hspace3D[x][y][r];
+			}
+        	}
+    	}
+	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
+	imwrite("hspace.jpg", hspace2d);
+
+
+
+	// 2. in parameter space, any element H(xo, yo, r) > Th
+	// represents a circle with radius r located at (xo, yo) in the image
 
 	for (int xo=0; xo< rows; xo++) {
 		for (int yo=0; yo< cols; yo++) {
@@ -309,20 +332,6 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 			}
 		}
 	}
-
-	cv::Mat hspace2d;
-	hspace2d.create(Size(mag.rows, mag.cols), mag.type()); // is prob wrong
-	// displaying hough space image
-	for (int r = minR; r <= maxR; r++){
-        for (int x = 0; x < mag.rows; x++){
-            for (int y = 0; y < mag.cols; y++){
-                hspace2d.at<uchar>(y,x) += hspace3D[x][y][r];
-			}
-        }
-    }
-
-	imwrite("hspace.jpg", hspace2d);
-
 	// openCV library func:
 	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
 
