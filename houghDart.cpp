@@ -28,8 +28,8 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
 void thresholding(Mat &input, Mat &thresholded);
-void hough(Mat &mag, Mat &dir, int peak, int maxR, int minR);
-vector<cv::Vec3b> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR);
+void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR);
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR);
 
 
 /** Global variables */
@@ -55,10 +55,11 @@ int main( int argc, const char** argv ){
 	//sobelOpenCV(frame, so);
 	sobelDetection(frame, dx, dy, mag, dir, sobe);
 
-	// for hough
 	// thresholding the gradient magnitude image
 	thresholding(mag, thresh);
-	// hough();
+
+	// hough
+	hough(frame, mag, dir, 190, 40, 5);
 
 	// 4. Save Result Image
 	imwrite( "oursobel.jpg", mag );
@@ -260,27 +261,30 @@ void thresholding( Mat &mag, Mat &thresh){
 
 
 
-void hough(Mat &mag, Mat &dir, int peak, int maxR, int minR){
-	vector<cv::Vec3b> detectedDarts;
+void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
+	vector<cv::Vec3i> detectedDarts;
 	// houghLineDetection();
 	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
 	// draw a circle with radius r
-	//cv::circle(image, Point(xo, yo), radius, Scalar( 0, 0, 255 ), 2);
+	for( int i = 0; i < detectedDarts.size(); i++ ){ 
+		Vec3i temp = detectedDarts[i];
+		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 0, 0, 255 ), 2);
+	}
 
 	// view the vector
-	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3b>(std::cout, " "));
+	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
 }
 
 
 
-// eq of circle: (x-a)^2 + (y-b)^2 = r^2
-vector<cv::Vec3b> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
+// eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
 	// should this be an array or vector
 	int rows = mag.rows, cols = mag.cols;
 	int hspace[rows][cols][maxR];
 	int thresh = 250; // this is a pixel value (ie Ts)
-	vector<cv::Vec3b> darts; //struct that holds 3 uchar i.e. a type with 8 bit that can contain data from 0 to 255
+	vector<cv::Vec3i> darts; //struct that holds 3 ints
 
 	// step size -> can have step size if we want to make hough calcualtions faster
 	// can be a subtask 4 thing?
@@ -338,7 +342,7 @@ vector<cv::Vec3b> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, 
 				// if it is a peak in the hough space then a circle is detected
 				if (hspace[xo][yo][radius] > peak) { // this is Th
 					// save detected circles in a vector
-                    darts.push_back(Vec3f(xo, yo, radius));
+                    darts.push_back(Vec3i(xo, yo, radius));
 				}
 			}
 		}
