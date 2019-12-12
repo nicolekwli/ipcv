@@ -28,7 +28,8 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
 void thresholding(Mat &input, Mat &thresholded);
-void hough( Mat tgMagImage, int threshold);
+void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR);
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR);
 
 
 /** Global variables */
@@ -54,10 +55,11 @@ int main( int argc, const char** argv ){
 	//sobelOpenCV(frame, so);
 	sobelDetection(frame, dx, dy, mag, dir, sobe);
 
-	// for hough
 	// thresholding the gradient magnitude image
 	thresholding(mag, thresh);
-	// hough();
+
+	// hough
+	hough(frame, mag, dir, 190, 40, 5);
 
 	// 4. Save Result Image
 	imwrite( "oursobel.jpg", mag );
@@ -131,7 +133,6 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 	imwrite("DIRECTION.jpg", dir);
 	// direction of gradient
 	// yeah this may or may not work? i know its meant to look bad but i cant tell if its meant to look THIS bad (lol)
-	//direction(sobe, scaledX, scaledY, dir);
 			// convert sobel to image format
 			// may not need this if we're already scaling the image
 			// this was only needed when we used 32FC1 since that is not an image format
@@ -233,10 +234,14 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 	dir.create(input.size(), input.type());
 	for (int i = 0; i < input.rows; i++) {
 		for (int j = 0; j < input.cols; j++) {
-			dir.at<uchar>(i,j) = atan( scaledY.at<double>(i,j) / scaledX.at<double>(i,j));
+			dir.at<uchar>(i,j) = atan( scaledY.at<float>(i,j) / scaledX.at<float>(i,j));
 		}
 	}
+
+	//cout << "KY is = " << endl << " " << dir << endl << endl;
+
 }
+
 
 
 // technically, code-wise, this works
@@ -260,48 +265,167 @@ void thresholding( Mat &mag, Mat &thresh){
 
 
 
-// ---> min/max radius and distance between circle centres
-	// calculates 3D hough space (xo, yo, r) from threshold g. mag. image and gradient orientation image
-	// decide size (no of cells) in hough space
-	// display hough space for each image
-	// --> create a 2D image
-	// ---> take log of the image to make values more descriptive
+void hough(Mat frame, Mat &mag, Mat &dir, int peak, int maxR, int minR){
+	vector<cv::Vec3i> detectedDarts;
+	cout << "in hough" <<endl;
 
-	// threshold the hough space and display the set of found circles on og images 
-void hough( Mat &mag, Mat &dir, int peak, Mat &hresult){
-	// eq of circle: (x-a)^2 + (y-b)^2 = r^2
-	int a = mag.rows;
-	int b = mag.cols;
-	//	int r = sqrt(pow(rows, 2) + pow(cols, 2));
+	// houghLineDetection();
+	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
-	// need to know if array is better or vector?
-	int houghSpace[5][5][5];
-	// initialize w/ 0s
-	
+	cout<< "end of hough " << endl;
+	// draw a circle with radius r
+	for( int i = 0; i < detectedDarts.size(); i++ ){ 
+		Vec3i temp = detectedDarts[i];
+		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 0, 0, 255 ), 2);
+	}
 
-	std::vector<Vec3f> output;
+	imwrite("houghDetected.jpg", frame);
 
-	// 1. for any pixel satisfying |G()| > Ts, increment all elements satisying the following:
-	//		for all r, xo = x +- rcos(dir)
-	//				   yo = y +- rsin(dir)
-	//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
+	// view the vector
+	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
+	cout<<endl;
+}
 
-	// 2. in parameter space, any element H(xo, yo, r) > Th
-	//		represents a circle with radius r located at (xo, yo) in the image
 
+
+// eq of circle: (x-x0)^2 + (y-y0)^2 = r^2
+vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
+
+	int rows = mag.rows, cols = mag.cols;
+	int thresh = 250; // this is a pixel value (ie Ts)
+	vector<cv::Vec3i> darts; //struct that holds 3 ints
+
+	int ***hspace3D;
+	//  Allocate 3D Array
+	hspace3D = new int**[rows];
+	for(int i = 0; i < rows; i++){
+		hspace3D[i] = new int*[cols];
+		for(int j = 0; j < cols; j++){
+			hspace3D[i][j] = new int[maxR];
+      	}
+	}
+
+	// step size -> can have step size if we want to make hough calcualtions faster
+	// can be a subtask 4 thing?
+
+	// initialize w 0s
+	for(int x=0; x< rows; x++){
+		for(int y=0; y< cols; y++){
+			for(int r = minR; r < maxR; r++){
+				hspace3D[x][y][r] = 0;
+			}
+		}
+	}
+
+
+	//cout << "KY is = " << endl << " " << mag << endl << endl;
+
+
+	int x0pos, x0neg, y0pos, y0neg;
+		// 1. for any pixel satisfying |Mag(x,y)| > Ts, increment all elements satisying the following:
+		//		for all r, xo = x +- rcos(dir(x,y))
+		//				   yo = y +- rsin(dir(x,y))
+		//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
+
+	// x and y is the center of a circle
+	for (int x=0; x< rows; x++){
+		for (int y=0; y< cols; y++){
+
+			// we do this since we only care about edges
+			if (mag.at<double>(x,y) > thresh ){
+
+				// for all radii from min to max possible r
+				for (int r = minR; r < maxR; r++){
+					// hough based on gradient direction given by dir matrix
+					int x0, y0;
+					// -ve
+					x0 = x - (int)(r * cos(dir.at<double>(y, x)));
+					y0 = y - (int)(r * sin(dir.at<double>(y, x)));
+					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
+						hspace3D[x0][y0][r] += 1; // plus one vote
+					}
+					// +ve
+					x0 = x + (int)(r * cos(dir.at<double>(y, x)));
+					y0 = y + (int)(r * sin(dir.at<double>(y, x)));
+					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
+						hspace3D[x0][y0][r] += 1; // plus one vote
+					}
+				}
+			}
+
+		}
+	}
+
+		// 2. in parameter space, any element H(xo, yo, r) > Th
+		//		represents a circle with radius r located at (xo, yo) in the image
+
+	for (int xo=0; xo< rows; xo++) {
+		for (int yo=0; yo< cols; yo++) {
+			for (int radius=0; radius< maxR; radius++) {
+				// if it is a peak in the hough space then a circle is detected
+				if (hspace3D[xo][yo][radius] > peak) { // this is Th
+					// save detected circles in a vector
+                    darts.push_back(Vec3i(xo, yo, radius));
+				}
+			}
+		}
+	}
+
+	cv::Mat hspace2d;
+	hspace2d.create(Size(mag.rows, mag.cols), mag.type()); // is prob wrong
+	// displaying hough space image
+	for (int r = minR; r <= maxR; r++){
+        for (int x = 0; x < mag.rows; x++){
+            for (int y = 0; y < mag.cols; y++){
+                hspace2d.at<uchar>(y,x) += hspace3D[x][y][r];
+			}
+        }
+    }
+
+	imwrite("hspace.jpg", hspace2d);
 
 	// openCV library func:
 	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
 
+	return darts; // returns the vector of all detected darts
+}
+
+
+
+void houghLineDetection(){
+	int slope, yint;
+	int hough[23][23];
+	// mat vs array of ints vs vector
+	// make this matrix 0s
+
+	// try different values of theta since we have x and y
+	// rho is unknown
+
+	// put values of rho and theta into said matrix
+
+	// the perpendicular from the origin to any point on that line will always be same
+	// and thus have the same rho and theta --> so they get more votes
+
+	// general algorithm
+	// for all x
+	// 	for all y
+	// 			if edge point at (x,y)
+	// 				for all theta
+	// 					rho = x*cos theta + y*sin theta
+	// 					H<theta, rho> += 1
+	// 				end
+	// 			end
+	// 	end
+	// end
 }
 
 
 
 /** @function detectAndDisplay **/
-// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
+// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES
 void detectAndDisplay( Mat frame ){
 	// std::vector<Rect> faces;
-	
+
 	Mat frame_gray;
 	// Mat result;
 
@@ -309,10 +433,10 @@ void detectAndDisplay( Mat frame ){
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
 	equalizeHist( frame_gray, frame_gray );
 
-	// 2. Perform Viola-Jones Object Detection 
+	// 2. Perform Viola-Jones Object Detection
 	// cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
 	// sobel (frame_gray, result);
-	
+
 	// imwrite("sobel.jpg", result);
        // 3. Print number of Faces found
 	// std::cout << faces.size() << std::endl;
