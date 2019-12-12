@@ -28,7 +28,8 @@ void ddx(cv::Mat &input, cv::Mat &resultX, cv::Mat &resultY);
 void magnitude(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &magnitude);
 void direction(cv::Mat &input, cv::Mat &ddx, cv::Mat &ddy, cv::Mat &direction);
 void thresholding(Mat &input, Mat &thresholded);
-void hough( Mat tgMagImage, int threshold);
+void hough(Mat &mag, Mat &dir, int peak, int maxR, int minR);
+vector<cv::Vec3b> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR);
 
 
 /** Global variables */
@@ -127,8 +128,6 @@ void sobelDetection( Mat &input, Mat &dx, Mat &dy, Mat &mag, Mat &dir, Mat &sobe
 	direction(sobe, scaledX, scaledY, dir);
 	imwrite( "dir.jpg", dir );
 
-
-	
 			// convert sobel to image format
 			// may not need this if we're already scaling the image
 			// this was only needed when we used 32FC1 since that is not an image format
@@ -234,9 +233,10 @@ void direction (cv::Mat &input, cv::Mat &scaledX, cv::Mat &scaledY, cv::Mat &dir
 		}
 	}
 
-	cout << "KY is = " << endl << " " << dir << endl << endl;
+	//cout << "KY is = " << endl << " " << dir << endl << endl;
 
 }
+
 
 
 // technically, code-wise, this works
@@ -259,56 +259,69 @@ void thresholding( Mat &mag, Mat &thresh){
 }
 
 
-/*
-// ---> min/max radius and distance between circle centres
-	// calculates 3D hough space (xo, yo, r) from threshold g. mag. image and gradient orientation image
-	// decide size (no of cells) in hough space
-	// display hough space for each image
-// --> create a 2D image
-// ---> take log of the image to make values more descriptive
-// threshold the hough space and display the set of found circles on og images 
-void hough(){
 
-	houghCircleDetection( Mat &image, Mat &mag, Mat &dir, int peak, Mat &hresult, int maxR, int minR);
+void hough(Mat &mag, Mat &dir, int peak, int maxR, int minR){
+	vector<cv::Vec3b> detectedDarts;
+	// houghLineDetection();
+	detectedDarts = houghCircleDetection( mag, dir, peak, maxR, minR);
 
+	// draw a circle with radius r
+	//cv::circle(image, Point(xo, yo), radius, Scalar( 0, 0, 255 ), 2);
+
+	// view the vector
+	std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3b>(std::cout, " "));
 }
 
 
 
 // eq of circle: (x-a)^2 + (y-b)^2 = r^2
-void houghCircleDetection( Mat &mag, Mat &dir, int peak, Mat &hresult, int maxR, int minR){
+vector<cv::Vec3b> houghCircleDetection( Mat &mag, Mat &dir, int peak, int maxR, int minR){
+	// should this be an array or vector
+	int rows = mag.rows, cols = mag.cols;
+	int hspace[rows][cols][maxR];
+	int thresh = 250; // this is a pixel value (ie Ts)
+	vector<cv::Vec3b> darts; //struct that holds 3 uchar i.e. a type with 8 bit that can contain data from 0 to 255
 
-	// need to know if array is better or vector?
-	int hspace[5][5][5];
-	// initialize w/ 0s
+	// step size -> can have step size if we want to make hough calcualtions faster
+	// can be a subtask 4 thing?
 
+	// initialize w 0s
+	for(int x=0; x< rows; x++){
+		for(int y=0; y< cols; y++){
+			for(int r = minR; r < maxR; r++){
+				hspace[x][y][r] = 0;
+			}
+		}
+	}
 
-	std::vector<Vec3f> output; //-> why
+	int x0pos, x0neg, y0pos, y0neg;
+		// 1. for any pixel satisfying |Mag(x,y)| > Ts, increment all elements satisying the following:
+		//		for all r, xo = x +- rcos(dir(x,y))
+		//				   yo = y +- rsin(dir(x,y))
+		//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
 
+	// x and y is the center of a circle
+	for (int x=0; x< rows; x++){
+		for (int y=0; y< cols; y++){
 
-	// step size -> can have step size
-
-	// 1. for any pixel satisfying |G()| > Ts, increment all elements satisying the following:
-	//		for all r, xo = x +- rcos(dir)
-	//				   yo = y +- rsin(dir)
-	//		H(xo, yo, r) = H(xo, yo, r) + 1 ----> gets one vote!
-
-	// x and y is the center of the circle
-	for (int x=0; x< number of rows in image, x++){
-		for (int y=0; y< nuber of cols in image; y++){
-			
 			// we do this since we only care about edges
-			if (mag.at<>(x,y) > thresh ){
+			if (mag.at<double>(x,y) > thresh ){
 
 				// for all radii from min to max possible r
 				for (int r = minR; r < maxR; r++){
-					// for all theta
-					for (int theta = 0; theta<360; theta++) {
-						
-						int x0 = x – r * cos(t * PI / 180);
-						int y0 = y – r * sin(t * PI / 180);
-						hspace[x][y][r] +=1;
-
+					// hough based on gradient direction given by dir matrix
+					int x0, y0;
+					// -ve
+					x0 = x - (int)(r * cos(dir.at<double>(y, x)));
+					y0 = y - (int)(r * sin(dir.at<double>(y, x)));
+					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
+						hspace[x0][y0][r] += 1; // plus one vote
+					}
+					// +ve
+					x0 = x + (int)(r * cos(dir.at<double>(y, x)));
+					y0 = y + (int)(r * sin(dir.at<double>(y, x)));
+					if (x0 >= 0 && y0 >= 0 && x0 < rows && y0 < cols){
+						hspace[x0][y0][r] += 1; // plus one vote
 					}
 				}
 			}
@@ -316,36 +329,40 @@ void houghCircleDetection( Mat &mag, Mat &dir, int peak, Mat &hresult, int maxR,
 		}
 	}
 
-	
-	lecture notes:
-		- how big is the hough space? 
-		- need as many params as exactly necess to exactly describe the shape
-			-> for ellipses, need x dir, y dir and a and b and then either angle of axes or...?
-			-> circle is 3
-		- the more complex the shape gets the more params there are
-		- so generic hough transform
-	
+		// 2. in parameter space, any element H(xo, yo, r) > Th
+		//		represents a circle with radius r located at (xo, yo) in the image
 
-	// 2. in parameter space, any element H(xo, yo, r) > Th
-	//		represents a circle with radius r located at (xo, yo) in the image
-
-	// ---> out of memory errors!!
-	for (int xo=0; xo< ; xo++) {
-		for (int yo=0; yo< ; yo++) {
-			for (int radius=0; radius< ; radius++) {
+	for (int xo=0; xo< rows; xo++) {
+		for (int yo=0; yo< cols; yo++) {
+			for (int radius=0; radius< maxR; radius++) {
 				// if it is a peak in the hough space then a circle is detected
-				if (H[xo][yo][radius] > peak) {
-					// draw a circle with radius r
-					cv::circle(image, Point(xo, yo), radius, Scalar( 0, 0, 255 ), 2);
+				if (hspace[xo][yo][radius] > peak) { // this is Th
+					// save detected circles in a vector
+                    darts.push_back(Vec3f(xo, yo, radius));
 				}
 			}
 		}
 	}
 
+	cv::Mat hspace2d;
+	hspace2d.create(Size(mag.rows, mag.cols), mag.type()); // is prob wrong
+	// displaying hough space image
+	for (int r = minR; r <= maxR; r++){
+        for (int x = 0; x < mag.rows; x++){
+            for (int y = 0; y < mag.cols; y++){
+                hspace2d.at<uchar>(y,x) += hspace[x][y][r];
+			}
+        }
+    }
+
+	imwrite("hspace.jpg", hspace2d);
+
 	// openCV library func:
 	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
 
+	return darts; // returns the vector of all detected darts
 }
+
 
 
 void houghLineDetection(){
@@ -374,15 +391,14 @@ void houghLineDetection(){
 	// 	end
 	// end
 }
-*/
 
 
 
 /** @function detectAndDisplay **/
-// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES 
+// THIS NEEDS TO BE CHANGED SO THAT IT WORKS ON DARTBOARDS NOT FACES
 void detectAndDisplay( Mat frame ){
 	// std::vector<Rect> faces;
-	
+
 	Mat frame_gray;
 	// Mat result;
 
@@ -390,10 +406,10 @@ void detectAndDisplay( Mat frame ){
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
 	equalizeHist( frame_gray, frame_gray );
 
-	// 2. Perform Viola-Jones Object Detection 
+	// 2. Perform Viola-Jones Object Detection
 	// cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
 	// sobel (frame_gray, result);
-	
+
 	// imwrite("sobel.jpg", result);
        // 3. Print number of Faces found
 	// std::cout << faces.size() << std::endl;
