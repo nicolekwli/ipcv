@@ -596,14 +596,30 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
 	cout << " -> hough detection done" << endl;
 
-	// combine the results
-	
+	// combine the results -----------------------------------------------
+	vector<Rect> reducedResult;
 
+	//for each hough circle detected
+	for (int i=0; i< Hresult.size(); i++){
+		
+		for (int j=0; j< VJresult.size(); j++){
+			//calcIOU(string fname, int px, int py, int pw, int ph, int col){
+			//if iou between Hresult and VJresult and intersected area > 0.x {
+				//reducedResult.push_back(Hresult[i].x, Hresult[i].y, Hresult[i].w, Hresult[i].h);
+			//}
+		}
+	}
 
-		// cout<< " -> filtering done " <<endl;
+	// print reduced result & draw rect
+	std::cout << " -> no of darts detected by viola-jones AND hough: " << reducedResult.size() << std::endl;
+	for( int i = 0; i < reducedResult.size(); i++ ){
+		rectangle(frame, Point(reducedResult[i].x, reducedResult[i].y), Point(reducedResult[i].x+reducedResult[i].width, reducedResult[i].y+reducedResult[i].height), Scalar( 255, 192, 203 ), 2);
+	}
+
+	cout<< " -> combining done " <<endl; 
+	// --------------------------------------------------------------------
 
 	// 4. Save Result Image
 	imwrite( "VJH.jpg", frame );
 
 }
-
