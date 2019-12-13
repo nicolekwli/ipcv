@@ -41,6 +41,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 void scaling(int *** hough, int maxR, int cols, int rows);
 
 void voilaAndHough(string name, Mat frame, Mat frame_gray );
+vector<Rect> filterBoxes(vector<Rect> input);
 /**************************/
 
 
@@ -587,95 +588,110 @@ vector<Rect> violaJones( string fname, Mat frame ) {
 */
 void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	cv::Mat dx, dy, mag, dir, thresh;
-	vector<Rect> VJresult, Hresult;
+	vector<Rect> VJresult, Hresult, VJaveraged, Haveraged;
 
 	// do viola
-	VJresult = violaJones( name, frame);
+	VJresult = violaJones(name, frame);
 	cout << " -> viola jones done" << endl;
+	//VJaveraged = filterBoxes(VJresult);
+	// print reduced result & draw rect
+	// for( int i = 0; i < VJaveraged.size(); i++ ){
+	// 	rectangle(frame, Point(VJaveraged[i].x, VJaveraged[i].y), Point(VJaveraged[i].x + VJaveraged[i].width, VJaveraged[i].y + VJaveraged[i].height), Scalar( 255, 192, 250 ), 2);
+	// }
 
 	// do hough
 	sobelDetection(frame_gray, dx, dy, mag, dir);
 	thresholding(mag, thresh);
 	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
 	cout << " -> hough detection done" << endl;
+	//Haveraged = averagingBoxes(Hresult);
 
-<<<<<<< HEAD
 	// combine the results -----------------------------------------------
 	vector<Rect> reducedResult;
+	vector<Rect> intersections;
 
-	//for each hough circle detected
-	for (int i=0; i< Hresult.size(); i++){
-		
-		for (int j=0; j< VJresult.size(); j++){
-			//calcIOU(string fname, int px, int py, int pw, int ph, int col){
-			//if iou between Hresult and VJresult and intersected area > 0.x {
-				//reducedResult.push_back(Hresult[i].x, Hresult[i].y, Hresult[i].w, Hresult[i].h);
-			//}
+	//for each hough detected rect compare with each viola detected rect
+	for (int i = 0; i < Hresult.size(); i++){
+		vector<Rect> Hintersect;
+
+		for (int j = 0; j < VJresult.size(); j++) {
+			// check if they intersect
+			Rect check = Hresult[i] & VJresult[j];
+			if (check.area() > 0){
+				// they intersect
+				Hintersect.push_back(check);
+			}
+			else {
+				// they dont intersect so erase the jth rectangle element
+				VJresult.erase(VJresult.begin()+j);
+			}
+		}
+
+		if (Hintersect.empty()){
+			// if no interesections b/w H and VJ then delete that H rectangle
+			Hresult.erase(Hresult.begin()+i);
+		}
+		else {
+			intersections.insert(intersections.end(), Hintersect.begin(), Hintersect.end());
 		}
 	}
-=======
-/*
-	int index = fname[4]-48;
-	char dot = '.';
-	if (fname[5] != dot){
-		index = stoi(to_string(index) + to_string(fname[5] - 48));
-	}
-	// col = number of darts
-	// combine the results
-	int gx = gt[index][col].x;
-	int gy = gt[index][col].y;
-	int gw = gt[index][col].w;
-	int gh = gt[index][col].h;
->>>>>>> task3-littlefix
+
+	cout<<"intersections " << intersections.size() <<endl;
 
 	// print reduced result & draw rect
 	std::cout << " -> no of darts detected by viola-jones AND hough: " << reducedResult.size() << std::endl;
-	for( int i = 0; i < reducedResult.size(); i++ ){
-		rectangle(frame, Point(reducedResult[i].x, reducedResult[i].y), Point(reducedResult[i].x+reducedResult[i].width, reducedResult[i].y+reducedResult[i].height), Scalar( 255, 192, 203 ), 2);
+	for( int i = 0; i < intersections.size(); i++ ){
+		rectangle(frame, Point(intersections[i].x, intersections[i].y), Point(intersections[i].x+intersections[i].width, intersections[i].y+intersections[i].height), Scalar( 100, 192, 203 ), 2);
 	}
+	// ----------------------------------------------------------------------------
 
-<<<<<<< HEAD
-	cout<< " -> combining done " <<endl; 
-	// --------------------------------------------------------------------
-=======
->>>>>>> task3-littlefix
+	cout<< " -> filtering done " <<endl;
 
-	for (int i = 0; i < Hresult.size(); i++){
-		for (int j = 0; j < VJresult.size(); j++) {
-			int ix1, iy1, ix2, iy2;
-			ix1 = min(Hresult.x + Hresult.w, VJresult.x + VJresult.w);
-			ix2 = max(Hresult.x, px);
-			iy1 = min(Hresult.y + Hresult.h, py + ph);
-			iy2 = max(Hresult.y, py);
-
-			// - calc the area of intersection
-			if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 0)){
-				intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);
-				// do things
-				// add to list of those that we combine		
-			}
-			else {
-				// get rid of this VJresult and do not display in the image 
-				// think thats it
-			}
-		
-		}
-		// if the list of those we cobine is empty -> get rid of this HResult
-
-		// if its not empty -> combine
-		// by taking the average value 
-	}
-
-
-		// cout<< " -> filtering done " <<endl;
-*/
-	// 4. Save Result Image
+	// Save Result Image
 	imwrite( "VJH.jpg", frame );
-<<<<<<< HEAD
 
-}
-=======
-	doCalc( name, frame, Hresult );
+	// ANALYSIS
+	//doCalc( name, frame, Hresult );
 }
 
->>>>>>> task3-littlefix
+
+// used to sort vector of Rects in ASC order
+struct compareAsc {
+    bool operator () (const Rect &a, const Rect &b) {
+		return a.x < b.x;
+    }
+};
+
+
+vector<Rect> averagingBoxes(vector<Rect> input){
+	vector<Rect> output;
+
+	return output;
+}
+
+
+vector<Rect> filterBoxes(vector<Rect> input) {
+	vector<Rect> output;
+	std::sort(input.begin(), input.end(), compareAsc());
+
+	// for( int i = 0; i < input.size(); i++ ){
+	// 	cout<< input[i] << endl;
+		
+	// 	Rect check = input[i] & next;
+	// 	if (check.area() > 0) {
+	// 		// then it is overlapping
+	// 		output.push_back(input[i]);
+	// 		if (i == input.size())
+	// 			next = input[0];
+	// 		else
+	// 	 		next = input[i+1];
+
+	// 	}
+	// 	else {
+	// 		// not overlapping
+	// 		// do nothing
+	// 	}
+	// }
+
+	return output;
+}
