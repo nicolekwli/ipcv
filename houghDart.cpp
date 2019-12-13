@@ -41,6 +41,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 void scaling(int *** hough, int maxR, int cols, int rows);
 
 void voilaAndHough(string name, Mat frame, Mat frame_gray );
+vector<Rect> combineResults(vector<Rect> input);
 vector<Rect> filterBoxes(vector<Rect> input);
 /**************************/
 
@@ -423,10 +424,10 @@ vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR
 	// also create vector of all detected rects
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
-		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
+		// cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
 
 		detectedDartBoxes.push_back(Rect(temp[0]-temp[2], temp[1]-temp[2], temp[2]*2, temp[2]*2));
-		cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
+		// cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
 	}
 
 	// display the vector
@@ -577,7 +578,7 @@ vector<Rect> violaJones( string fname, Mat frame ) {
 	std::cout << " -> no of darts detected by viola-jones: " << dart.size() << std::endl;
 
 	for( int i = 0; i < dart.size(); i++ ){
-		rectangle(frame, Point(dart[i].x, dart[i].y), Point(dart[i].x + dart[i].width, dart[i].y + dart[i].height), Scalar( 255, 192, 203 ), 2);
+		rectangle(frame, Point(dart[i].x, dart[i].y), Point(dart[i].x + dart[i].width, dart[i].y + dart[i].height), Scalar( 165, 192, 203 ), 2);
 	}
 
 	// ANALYSIS CALC
@@ -609,6 +610,17 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	vector<Rect> reducedResult;
 	vector<Rect> intersections;
 
+
+	// reduce the number of results by combining those that intersect
+	Hresult = combineResults(Hresult);
+	for (int j = 0; j< Hresult.size(); j++){
+		rectangle(frame, Point(Hresult[j].x, Hresult[j].y), Point(Hresult[j].x + Hresult[j].width, Hresult[j].y + Hresult[j].height), Scalar(255,192,203),2);
+}	
+	// VJresult = combineResults(VJresult);
+/*for( int i = 0; i < VJresult .size(); i++ ){
+		rectangle(frame, Point(VJresult [i].x, VJresult [i].y), Point(VJresult [i].x + VJresult [i].width, VJresult [i].y + VJresult [i].height), Scalar( 255, 192, 203 ), 2);
+	}*/
+	// We assume that both detection should have detected part of the dartboard
 	//for each hough detected rect compare with each viola detected rect
 	for (int i = 0; i < Hresult.size(); i++){
 		vector<Rect> Hintersect;
@@ -622,12 +634,13 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 			}
 			else {
 				// they dont intersect so erase the jth rectangle element
-				VJresult.erase(VJresult.begin()+j);
+				// VJresult.erase(VJresult.begin()+j);
 			}
 		}
 
 		if (Hintersect.empty()){
 			// if no interesections b/w H and VJ then delete that H rectangle
+			// based on assumption we decide that not a bit of the dartboard is detected.
 			Hresult.erase(Hresult.begin()+i);
 		}
 		else {
@@ -640,7 +653,7 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 
 	// filtering boxes that overlap in the same place
 	//reducedResult = filterBoxes(intersections);
-	groupRectangles(intersections, 1, 0.2);
+	groupRectangles(intersections, 0, 0.2);
 	cout<< " -> filtering done " <<endl;
 
 	// draw reduced result rectangles
@@ -663,6 +676,42 @@ struct compareAsc {
 		return a.x < b.x;
     }
 };
+
+// this function detects overlapping detected boxes and combines them, reducing the number of boxes.
+vector<Rect> combineResults(vector<Rect> input){
+	vector<Rect> newInput;
+	vector<Rect> inputCopy = input;
+	for (int i = 0; i < input.size(); i++) {
+		// if the intersect, store
+		vector<Rect> intersect;
+
+                for (int j = 0; j < inputCopy.size(); j++) {
+			// check if they intersect
+                        Rect check = input[i] & inputCopy[j];
+			if (check.area() > 0){
+				// they intersect
+				intersect.push_back(inputCopy[j]);
+				inputCopy.erase(inputCopy.begin()+j);
+			}
+		}
+		// if intersect is empty, keep the ith one
+		if (intersect.empty()){	
+			intersect.push_back(input[i]);
+		}
+		// if its not empty, add ith to intersect list and conbine all intersect
+		else {
+			intersect.push_back(input[i]);
+			// included this here coz idk
+			newInput.insert(newInput.end(), intersect.begin(), intersect.end());
+		}
+	// combine all thost that need to be at the end of each i-loop
+	// and store
+	
+	}
+	groupRectangles(newInput, 1, 1.6);
+	cout << "new detected boxes: " << newInput.size() << endl;
+	return newInput;
+}
 
 
 vector<Rect> averagingBoxes(vector<Rect> input){
