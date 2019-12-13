@@ -158,6 +158,7 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 	float IOUs[no_of_darts[index]];
 
 	cout << "INDEX" << index << std::endl;
+	cout << "NO OF DARTS: " << no_of_darts[index] << endl;
 	// for each ground truth face we perform IOU with all detected faces
 	for (int j = 0; j < no_of_darts[index]; j++){
 		float IOU = 0;
@@ -168,9 +169,11 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 		for (int k = 0; k < faces.size(); k++){
 			// perform IOU and compare to previous and store the larger one	
 			tempIOU = calcIOU(fname, faces[k].x, faces[k].y, faces[k].width, faces[k].height, j);
-			// std::cout << "temp: " << tempIOU << std::endl;
-			// if ((IOU < tempIOU) && (tempIOU < 1)){
-			 if (IOU < tempIOU){
+			cout << "x: "<< faces[k].x << endl;
+			cout << "y: "<<  faces[k].y<< endl; 
+			cout << "width: " << faces[k].width << endl;
+			cout << "height: " << faces[k].height << endl;
+			if (IOU < tempIOU){
 				if (j == 0){
 					IOU = tempIOU;
 				}
@@ -202,13 +205,16 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 	std::cout << tpr << std::endl;
 
 	// F1
+	// no of detected should increment whenever one we dont include
 	int noOfDetected = faces.size();
+	cout << "detected: " << noOfDetected << endl;
 	std::cout << "F1: " << std::endl; 
 	std::cout << calcF1score(IOUs, index, noOfDetected) << std::endl;
 
 }
 
 float calcIOU(string fname, int px, int py, int pw, int ph, int col){
+	cout << "COLE: "<< col << endl;
 	// - get index & declare variables
 	int index = fname[4]-48;
 	char dot = '.';
@@ -238,7 +244,7 @@ float calcIOU(string fname, int px, int py, int pw, int ph, int col){
 	iy2 = max(gy, py);
 
 	// - calc the area of intersection
-	if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 1)){
+	if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 0)){
 		intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);		
 	}
 	else return 0;
@@ -400,10 +406,7 @@ void thresholding( Mat &mag, Mat &thresh){
 
 
 // mag, dir, hspace
-// dont need frame
-// 190,40,5
 // maxR is frame.rows/2
-
 vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR, int minR){
 	cout<< " -> ... hough in progress " <<endl;
 	vector<cv::Vec3i> detectedDarts;
@@ -420,7 +423,8 @@ vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR
 	for( int i = 0; i < detectedDarts.size(); i++ ){ 
 		Vec3i temp = detectedDarts[i];
 		cv::circle(frame, Point(temp[0], temp[1]), temp[2], Scalar( 255, 0, 0 ), 2);
-		detectedDartBoxes.push_back(Rect(temp[0]-temp[2], temp[1]-temp[2], temp[0]+temp[2], temp[1] + temp[2]));
+
+		detectedDartBoxes.push_back(Rect(temp[0]-temp[2], temp[1]-temp[2], temp[2]*2, temp[2]*2));
 		cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
 	}
 
@@ -459,7 +463,6 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			}
 		}
 	}
-
 
 	// the actual calculation & casting votes
 	for (int x=0; x< cols; x++){
@@ -596,14 +599,52 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
 	cout << " -> hough detection done" << endl;
 
+/*
+	int index = fname[4]-48;
+	char dot = '.';
+	if (fname[5] != dot){
+		index = stoi(to_string(index) + to_string(fname[5] - 48));
+	}
+	// col = number of darts
 	// combine the results
-	
+	int gx = gt[index][col].x;
+	int gy = gt[index][col].y;
+	int gw = gt[index][col].w;
+	int gh = gt[index][col].h;
+
+
+
+	for (int i = 0; i < Hresult.size(); i++){
+		for (int j = 0; j < VJresult.size(); j++) {
+			int ix1, iy1, ix2, iy2;
+			ix1 = min(Hresult.x + Hresult.w, VJresult.x + VJresult.w);
+			ix2 = max(Hresult.x, px);
+			iy1 = min(Hresult.y + Hresult.h, py + ph);
+			iy2 = max(Hresult.y, py);
+
+			// - calc the area of intersection
+			if (((ix1 - ix2) > 0) && ((iy1 - iy2) > 0)){
+				intersect_area = abs(ix1 - ix2) * abs(iy1 - iy2);
+				// do things
+				// add to list of those that we combine		
+			}
+			else {
+				// get rid of this VJresult and do not display in the image 
+				// think thats it
+			}
+		
+		}
+		// if the list of those we cobine is empty -> get rid of this HResult
+
+		// if its not empty -> combine
+		// by taking the average value 
+	}
 
 
 		// cout<< " -> filtering done " <<endl;
-
+*/
 	// 4. Save Result Image
 	imwrite( "VJH.jpg", frame );
-
+	doCalc( name, frame, Hresult );
 }
 
