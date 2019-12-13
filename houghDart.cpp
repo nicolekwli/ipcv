@@ -639,11 +639,12 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	// ----------------------------------------------------------------------------
 
 	// filtering boxes that overlap in the same place
-	reducedResult = filterBoxes(intersections);
+	//reducedResult = filterBoxes(intersections);
+	groupRectangles(intersections, 1, 0.2);
 	cout<< " -> filtering done " <<endl;
 
 	// draw reduced result rectangles
-	std::cout << " -> no of darts detected by viola-jones AND hough: " << reducedResult.size() << std::endl;
+	std::cout << " -> no of darts detected by viola-jones AND hough: " << intersections.size() << std::endl;
 	for( int i = 0; i < intersections.size(); i++ ){
 		rectangle(frame, Point(intersections[i].x, intersections[i].y), Point(intersections[i].x+intersections[i].width, intersections[i].y+intersections[i].height), Scalar( 255, 255, 0 ), 2);
 	}
@@ -702,7 +703,7 @@ vector<Rect> filterBoxes(vector<Rect> input) {
 			// if a cluster is found, combine them
 			Rect newR;
 			for (int k=0; k<stored.size(); k++){
-				newR |= stored[i];
+				newR = newR | stored[i];
 			}
 
 			output.push_back(newR);
