@@ -464,6 +464,8 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			}
 		}
 	}
+		
+		cout<< " -> ... hough in progress " <<endl;
 
 	// the actual calculation & casting votes
 	for (int x=0; x< cols; x++){
@@ -489,6 +491,8 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 			 }
 		}
 	}
+
+	cout<< " -> ... hough in progress " <<endl;
 
 	// scaling the hough votes so its easier to find peak
 	scaling(hspace3D, maxR, cols, rows);
@@ -530,6 +534,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 
 // describe this
 void scaling( int *** hough, int maxR, int cols, int rows ){
+	cout<< " -> ... hough in progress " <<endl;
 	int max = 0;
 	// find the max
 	for (int x=0; x< cols; x++){
@@ -593,18 +598,12 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	// do viola
 	VJresult = violaJones(name, frame);
 	cout << " -> viola jones done" << endl;
-	//VJaveraged = filterBoxes(VJresult);
-	// print reduced result & draw rect
-	// for( int i = 0; i < VJaveraged.size(); i++ ){
-	// 	rectangle(frame, Point(VJaveraged[i].x, VJaveraged[i].y), Point(VJaveraged[i].x + VJaveraged[i].width, VJaveraged[i].y + VJaveraged[i].height), Scalar( 255, 192, 250 ), 2);
-	// }
 
 	// do hough
 	sobelDetection(frame_gray, dx, dy, mag, dir);
 	thresholding(mag, thresh);
 	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
 	cout << " -> hough detection done" << endl;
-	//Haveraged = averagingBoxes(Hresult);
 
 	// combine the results -----------------------------------------------
 	vector<Rect> reducedResult;
@@ -637,15 +636,17 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	}
 
 	cout<<"intersections " << intersections.size() <<endl;
-
-	// print reduced result & draw rect
-	std::cout << " -> no of darts detected by viola-jones AND hough: " << reducedResult.size() << std::endl;
-	for( int i = 0; i < intersections.size(); i++ ){
-		rectangle(frame, Point(intersections[i].x, intersections[i].y), Point(intersections[i].x+intersections[i].width, intersections[i].y+intersections[i].height), Scalar( 100, 192, 203 ), 2);
-	}
 	// ----------------------------------------------------------------------------
 
+	// filtering boxes that overlap in the same place
+	reducedResult = filterBoxes(intersections);
 	cout<< " -> filtering done " <<endl;
+
+	// draw reduced result rectangles
+	std::cout << " -> no of darts detected by viola-jones AND hough: " << reducedResult.size() << std::endl;
+	for( int i = 0; i < intersections.size(); i++ ){
+		rectangle(frame, Point(intersections[i].x, intersections[i].y), Point(intersections[i].x+intersections[i].width, intersections[i].y+intersections[i].height), Scalar( 255, 255, 0 ), 2);
+	}
 
 	// Save Result Image
 	imwrite( "VJH.jpg", frame );
@@ -674,24 +675,43 @@ vector<Rect> filterBoxes(vector<Rect> input) {
 	vector<Rect> output;
 	std::sort(input.begin(), input.end(), compareAsc());
 
-	// for( int i = 0; i < input.size(); i++ ){
-	// 	cout<< input[i] << endl;
-		
-	// 	Rect check = input[i] & next;
-	// 	if (check.area() > 0) {
-	// 		// then it is overlapping
-	// 		output.push_back(input[i]);
-	// 		if (i == input.size())
-	// 			next = input[0];
-	// 		else
-	// 	 		next = input[i+1];
+	// for every rect
+	for(int i=0; i<input.size(); i++){
+			vector<Rect> stored;
+			cout<< i << " ";
+		for(int j=0; j<input.size(); j++){
 
-	// 	}
-	// 	else {
-	// 		// not overlapping
-	// 		// do nothing
-	// 	}
-	// }
+			// // to make sure the same rect isnt checked
+			if (i != j){
+				cout<< j;
+				// store the first one
+				stored.push_back(input[i]);
+
+				Rect check = input[i] & input[j];
+				if (check.area() > 0){
+					// if they intersect store it
+					stored.push_back(input[j]);
+				}
+				else {
+					//do nothing?
+				}
+			}
+		}
+
+		if (!stored.empty()){
+			// if a cluster is found, combine them
+			Rect newR;
+			for (int k=0; k<stored.size(); k++){
+				newR |= stored[i];
+			}
+
+			output.push_back(newR);
+		}
+
+		cout<< endl;
+	}
+
+	cout<< "ended "<< endl;
 
 	return output;
 }
