@@ -197,8 +197,6 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 		// store final one in facesMatched
 		facesMatched[j] = IOUIndex;
 		IOUs[j] = IOU;
-		// display the grround truth face we're currently at
-		std::cout << "gt face: " << j << std::endl;
 		// display the best IOU
 		std::cout << "iou: " << IOU << std::endl;
 	}
@@ -267,29 +265,33 @@ float calcTPR(float iou[], int index){
 			TP = TP + 1;
 		}
 	}
-	// std::cout << TP << std::endl;
-	// std::cout << no_of_darts[index] << std::endl;
 	float tpr = (float) TP / no_of_darts[index];
-	// std::cout << tpr << std::endl;
 	return tpr;
 }
 
 float calcF1score(float iou[], int index, int noOfDetected){
-	int TP, FN = 0;
+	int TP = 0;
+	int FN = 0;
 	int FP = noOfDetected - no_of_darts[index];
 	//cout << "index" << index << endl;
 	for (int i = 0 ; i < no_of_darts[index]; i++){
+	cout << "IOU VALUE: "<< iou[i] << endl;
 		if (iou[i] >= 0.5 ){
 			// then it is a true positive
 			TP = TP + 1;
+		}
 		if (iou[i] == 0) {
-			FN = FN + 1;}
+			FN = FN + 1;
 		}	
 	}
+	cout << "fp: " << FP << endl;
+	cout << "tp: " << TP << endl;
+	cout << "fn: " << FN << endl;
 	// ACTUAL F1	
 	float precision = (float) TP / (TP + FP);
 	float recall = (float) TP / (TP + FN);
-
+	cout<< "precision: " << precision << endl;
+	cout << "recall: " << recall << endl;
 	return 2 * ((precision * recall)/(precision + recall));
 }
 
@@ -577,12 +579,12 @@ vector<Rect> violaJones( string fname, Mat frame ) {
 	
 	std::cout << " -> no of darts detected by viola-jones: " << dart.size() << std::endl;
 
-	for( int i = 0; i < dart.size(); i++ ){
+	/*for( int i = 0; i < dart.size(); i++ ){
 		rectangle(frame, Point(dart[i].x, dart[i].y), Point(dart[i].x + dart[i].width, dart[i].y + dart[i].height), Scalar( 165, 192, 203 ), 2);
-	}
+	}*/
 
 	// ANALYSIS CALC
-	//doCalc(fname, frame, dart);
+	// doCalc(fname, frame, dart);
 
 	return dart;
 }
@@ -613,9 +615,9 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 
 	// reduce the number of results by combining those that intersect
 	Hresult = combineResults(Hresult);
-	for (int j = 0; j< Hresult.size(); j++){
+	/*for (int j = 0; j< Hresult.size(); j++){
 		rectangle(frame, Point(Hresult[j].x, Hresult[j].y), Point(Hresult[j].x + Hresult[j].width, Hresult[j].y + Hresult[j].height), Scalar(255,192,203),2);
-}	
+}*/	
 	// VJresult = combineResults(VJresult);
 /*for( int i = 0; i < VJresult .size(); i++ ){
 		rectangle(frame, Point(VJresult [i].x, VJresult [i].y), Point(VJresult [i].x + VJresult [i].width, VJresult [i].y + VJresult [i].height), Scalar( 255, 192, 203 ), 2);
@@ -666,7 +668,7 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	imwrite( "VJH.jpg", frame );
 
 	// ANALYSIS
-	//doCalc( name, frame, Hresult );
+	doCalc( name, frame, intersections );
 }
 
 
