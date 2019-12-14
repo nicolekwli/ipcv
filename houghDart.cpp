@@ -273,6 +273,9 @@ float calcF1score(float iou[], int index, int noOfDetected){
 	int TP = 0;
 	int FN = 0;
 	int FP = noOfDetected - no_of_darts[index];
+	if (FP < 0){
+		FP = 0;
+	}
 	//cout << "index" << index << endl;
 	for (int i = 0 ; i < no_of_darts[index]; i++){
 	cout << "IOU VALUE: "<< iou[i] << endl;
@@ -605,7 +608,7 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	// do hough
 	sobelDetection(frame_gray, dx, dy, mag, dir);
 	thresholding(mag, thresh);
-	Hresult = hough(frame, thresh, dir, 180, 220, 40, 30);
+	Hresult = hough(frame, thresh, dir, 180, 160, 40, 45);
 	cout << " -> hough detection done" << endl;
 
 	// combine the results -----------------------------------------------
@@ -614,11 +617,11 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 
 
 	// reduce the number of results by combining those that intersect
-	Hresult = combineResults(Hresult);
+	 Hresult = combineResults(Hresult);
 	/*for (int j = 0; j< Hresult.size(); j++){
 		rectangle(frame, Point(Hresult[j].x, Hresult[j].y), Point(Hresult[j].x + Hresult[j].width, Hresult[j].y + Hresult[j].height), Scalar(255,192,203),2);
 }*/	
-	// VJresult = combineResults(VJresult);
+//	VJresult = combineResults(VJresult);
 /*for( int i = 0; i < VJresult .size(); i++ ){
 		rectangle(frame, Point(VJresult [i].x, VJresult [i].y), Point(VJresult [i].x + VJresult [i].width, VJresult [i].y + VJresult [i].height), Scalar( 255, 192, 203 ), 2);
 	}*/
@@ -630,7 +633,8 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 		for (int j = 0; j < VJresult.size(); j++) {
 			// check if they intersect
 			Rect check = Hresult[i] & VJresult[j];
-			if (check.area() > 0){
+			// think this hsould be the threshold
+			if (check.area() > (0) ){
 				// they intersect
 				Hintersect.push_back(check);
 			}
@@ -688,12 +692,15 @@ vector<Rect> combineResults(vector<Rect> input){
 		vector<Rect> intersect;
 
                 for (int j = 0; j < inputCopy.size(); j++) {
+			if (i != j){
 			// check if they intersect
                         Rect check = input[i] & inputCopy[j];
+			// if its bigger than 1/4 of the area 
 			if (check.area() > 0){
 				// they intersect
 				intersect.push_back(inputCopy[j]);
 				inputCopy.erase(inputCopy.begin()+j);
+			}
 			}
 		}
 		// if intersect is empty, keep the ith one
