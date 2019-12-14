@@ -42,7 +42,6 @@ void scaling(int *** hough, int maxR, int cols, int rows);
 
 void voilaAndHough(string name, Mat frame, Mat frame_gray );
 vector<Rect> combineResults(vector<Rect> input);
-vector<Rect> filterBoxes(vector<Rect> input);
 /**************************/
 
 
@@ -76,7 +75,7 @@ int main( int argc, const char** argv ){
 }
 
 // ----------------------------------------------------------------------------------------------------
-// ---------- Ground truth and friends  -------------------------------------------------------------------
+// ---------- Ground truth and friends  ---------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------
 void getGroundTruthData(){
 	string line;
@@ -111,11 +110,10 @@ void getGroundTruthData(){
 		gt[index][col].w = stoi(T);
 		getline(temp, T, ' ');
 		gt[index][col].h = stoi(T);
-		//std::cout << "end of one line" << std::endl;
+
 		if (index == 15){
 			break;
 		}
-		//cout<< gt[index][col].x << " " << gt[index][col].y << " " <<gt[index][col].w << " "<<gt[index][col].w << endl;
 		col++;
 		oldIndex = index;
 	}
@@ -132,9 +130,6 @@ void drawGroundTruth(string fname, Mat frame){
 	if (fname[5] != dot){
 		index = stoi(to_string(index) + to_string(fname[5] - 48));
 	}
-	// for (int i = 0 ; i < 15; i++) {
-	// 	cout<< gt[index][i].x << endl;
-	// }
 	// draw rect
 	while(gt[index][col].x != 0){
 		rectangle(frame, Point(gt[index][col].x, gt[index][col].y), Point(gt[index][col].x + gt[index][col].w, gt[index][col].y + gt[index][col].h), Scalar( 0, 0, 255 ), 2);
@@ -159,7 +154,7 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 	// NEED A LIST OF IOU TO PASS INTO TPR
 	float IOUs[no_of_darts[index]];
 
-	cout << "INDEX" << index << std::endl;
+	cout << "INDEX: " << index << std::endl;
 	cout << "NO OF DARTS: " << no_of_darts[index] << endl;
 	// for each ground truth face we perform IOU with all detected faces
 	for (int j = 0; j < no_of_darts[index]; j++){
@@ -171,10 +166,10 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 		for (int k = 0; k < faces.size(); k++){
 			// perform IOU and compare to previous and store the larger one	
 			tempIOU = calcIOU(fname, faces[k].x, faces[k].y, faces[k].width, faces[k].height, j);
-			cout << "x: "<< faces[k].x << endl;
-			cout << "y: "<<  faces[k].y<< endl; 
-			cout << "width: " << faces[k].width << endl;
-			cout << "height: " << faces[k].height << endl;
+			// cout << "x: "<< faces[k].x << endl;
+			// cout << "y: "<<  faces[k].y<< endl; 
+			// cout << "width: " << faces[k].width << endl;
+			// cout << "height: " << faces[k].height << endl;
 			if (IOU < tempIOU){
 				if (j == 0){
 					IOU = tempIOU;
@@ -214,7 +209,7 @@ void doCalc( string fname, Mat frame, std::vector<Rect> faces ){
 }
 
 float calcIOU(string fname, int px, int py, int pw, int ph, int col){
-	cout << "COLE: "<< col << endl;
+	// cout << "COLE: "<< col << endl;
 	// - get index & declare variables
 	int index = fname[4]-48;
 	char dot = '.';
@@ -276,7 +271,6 @@ float calcF1score(float iou[], int index, int noOfDetected){
 	if (FP < 0){
 		FP = 0;
 	}
-	//cout << "index" << index << endl;
 	for (int i = 0 ; i < no_of_darts[index]; i++){
 	cout << "IOU VALUE: "<< iou[i] << endl;
 		if (iou[i] >= 0.5 ){
@@ -287,14 +281,14 @@ float calcF1score(float iou[], int index, int noOfDetected){
 			FN = FN + 1;
 		}	
 	}
-	cout << "fp: " << FP << endl;
-	cout << "tp: " << TP << endl;
-	cout << "fn: " << FN << endl;
+	// cout << "fp: " << FP << endl;
+	// cout << "tp: " << TP << endl;
+	// cout << "fn: " << FN << endl;
 	// ACTUAL F1	
 	float precision = (float) TP / (TP + FP);
 	float recall = (float) TP / (TP + FN);
-	cout<< "precision: " << precision << endl;
-	cout << "recall: " << recall << endl;
+	// cout<< "precision: " << precision << endl;
+	// cout << "recall: " << recall << endl;
 	return 2 * ((precision * recall)/(precision + recall));
 }
 
@@ -435,10 +429,6 @@ vector<Rect> hough(Mat frame, Mat &mag, Mat &dir, int thresh, int peak, int maxR
 		// cv::rectangle(frame, Point(temp[0]-temp[2], temp[1]-temp[2]), Point(temp[0]+temp[2], temp[1] + temp[2]), Scalar( 0, 255, 0 ), 2);
 	}
 
-	// display the vector
-	// std::copy(detectedDarts.begin(), detectedDarts.end(), std::ostream_iterator<cv::Vec3i>(std::cout, " "));
-	// cout<<endl;
-
 	std::cout << " -> no of darts detected by Hough: " << detectedDartBoxes.size() << std::endl;
 
 	return detectedDartBoxes;
@@ -459,7 +449,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 		hspace3D[i] = new int*[rows];
 		for(int j = 0; j < rows; j++){
 			hspace3D[i][j] = new int[maxR];
-      		}
+		}
 	}
 
 	// initialize 3D array w 0s
@@ -498,7 +488,7 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 		}
 	}
 
-	cout<< " -> ... hough in progress " <<endl;
+		cout<< " -> ... hough in progress " <<endl;
 
 	// scaling the hough votes so its easier to find peak
 	scaling(hspace3D, maxR, cols, rows);
@@ -531,14 +521,10 @@ vector<cv::Vec3i> houghCircleDetection( Mat &mag, Mat &dir, int thresh, int peak
 	normalize(hspace2d, hspace2d, 0, 255, 32, -1);
 	imwrite("hspace.jpg", hspace2d);
 
-	// openCV library func:
-	// HoughCircles(mag, hresult, CV_HOUGH_GRADIENT, 1, mag.rows/8, 200, 100, 0, 0 );
-
 	return darts; // returns the vector of all detected darts
 }
 
-
-// describe this
+// scaling the votes to be out of 255
 void scaling( int *** hough, int maxR, int cols, int rows ){
 	cout<< " -> ... hough in progress " <<endl;
 	int max = 0;
@@ -620,9 +606,9 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	 Hresult = combineResults(Hresult);
 	/*for (int j = 0; j< Hresult.size(); j++){
 		rectangle(frame, Point(Hresult[j].x, Hresult[j].y), Point(Hresult[j].x + Hresult[j].width, Hresult[j].y + Hresult[j].height), Scalar(255,192,203),2);
-}*/	
-//	VJresult = combineResults(VJresult);
-/*for( int i = 0; i < VJresult .size(); i++ ){
+	}*/	
+	//	VJresult = combineResults(VJresult);
+	/*for( int i = 0; i < VJresult .size(); i++ ){
 		rectangle(frame, Point(VJresult [i].x, VJresult [i].y), Point(VJresult [i].x + VJresult [i].width, VJresult [i].y + VJresult [i].height), Scalar( 255, 192, 203 ), 2);
 	}*/
 	// We assume that both detection should have detected part of the dartboard
@@ -658,7 +644,6 @@ void voilaAndHough(string name, Mat frame, Mat frame_gray ){
 	// ----------------------------------------------------------------------------
 
 	// filtering boxes that overlap in the same place
-	//reducedResult = filterBoxes(intersections);
 	groupRectangles(intersections, 0, 0.2);
 	cout<< " -> filtering done " <<endl;
 
@@ -691,16 +676,16 @@ vector<Rect> combineResults(vector<Rect> input){
 		// if the intersect, store
 		vector<Rect> intersect;
 
-                for (int j = 0; j < inputCopy.size(); j++) {
+		for (int j = 0; j < inputCopy.size(); j++) {
 			if (i != j){
 			// check if they intersect
-                        Rect check = input[i] & inputCopy[j];
-			// if its bigger than 1/4 of the area 
-			if (check.area() > 0){
-				// they intersect
-				intersect.push_back(inputCopy[j]);
-				inputCopy.erase(inputCopy.begin()+j);
-			}
+				Rect check = input[i] & inputCopy[j];
+				// if its bigger than 1/4 of the area 
+				if (check.area() > 0){
+					// they intersect
+					intersect.push_back(inputCopy[j]);
+					inputCopy.erase(inputCopy.begin()+j);
+				}
 			}
 		}
 		// if intersect is empty, keep the ith one
@@ -715,62 +700,8 @@ vector<Rect> combineResults(vector<Rect> input){
 		}
 	// combine all thost that need to be at the end of each i-loop
 	// and store
-	
 	}
 	groupRectangles(newInput, 1, 1.6);
 	cout << "new detected boxes: " << newInput.size() << endl;
 	return newInput;
-}
-
-
-vector<Rect> averagingBoxes(vector<Rect> input){
-	vector<Rect> output;
-
-	return output;
-}
-
-
-vector<Rect> filterBoxes(vector<Rect> input) {
-	vector<Rect> output;
-	std::sort(input.begin(), input.end(), compareAsc());
-
-	// for every rect
-	for(int i=0; i<input.size(); i++){
-			vector<Rect> stored;
-			cout<< i << " ";
-		for(int j=0; j<input.size(); j++){
-
-			// // to make sure the same rect isnt checked
-			if (i != j){
-				cout<< j;
-				// store the first one
-				stored.push_back(input[i]);
-
-				Rect check = input[i] & input[j];
-				if (check.area() > 0){
-					// if they intersect store it
-					stored.push_back(input[j]);
-				}
-				else {
-					//do nothing?
-				}
-			}
-		}
-
-		if (!stored.empty()){
-			// if a cluster is found, combine them
-			Rect newR;
-			for (int k=0; k<stored.size(); k++){
-				newR = newR | stored[i];
-			}
-
-			output.push_back(newR);
-		}
-
-		cout<< endl;
-	}
-
-	cout<< "ended "<< endl;
-
-	return output;
 }
